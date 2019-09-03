@@ -1,0 +1,11 @@
+i {
+  cursor: pointer;
+}
+
+input {
+  border: none;
+
+  &:focus {
+    outline: none;
+  }
+}
