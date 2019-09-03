@@ -7,7 +7,14 @@ const App = () => {
   const [todos, updateTodos] = useState([]);
 
   return (
-    <div className='App' style={{ textAlign: 'center' }}>
+    <div
+      className='App'
+      style={{
+        textAlign: 'center',
+        transform: 'scale(1.25)',
+        marginTop: '20px'
+      }}
+    >
       <div className='container' style={{ width: '300px', margin: 'auto' }}>
         <div className='ui container'>
           <h2>Todos</h2>

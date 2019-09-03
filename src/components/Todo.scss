@@ -4,7 +4,8 @@ i {
 
 input {
   border: none;
-
+  max-width: 300px;
+  
   &:focus {
     outline: none;
   }

@@ -55,7 +55,7 @@ const Todo = ({ task, id, updateTodo, removeTodo }) => {
     </div>
   );
 
-  return <div className='item'>{render}</div>;
+  return <div className='item' style={{maxWidth: '300px', wordBreak: 'break-all'}}>{render}</div>;
 };
 
 export default Todo;
