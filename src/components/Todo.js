@@ -4,7 +4,11 @@ import './Todo.scss';
 
 const Todo = ({ task, id, updateTodo, removeTodo }) => {
   const [editing, toggleEditing] = useState(false);
+  const [isDone, toggleDone] = useState(false);
   const [text, updateText] = useState(task);
+
+  const color = isDone ? 'green' : '';
+  const done = isDone ? 'strike' : '';
 
   const handleChange = e => {
     updateText(e.target.value);
@@ -47,7 +51,14 @@ const Todo = ({ task, id, updateTodo, removeTodo }) => {
         margin: '0 10px'
       }}
     >
-      <div>{task}</div>
+      <div>
+        <i
+          onClick={() => toggleDone(!done)}
+          className={`check ${color} icon`}
+          style={{ marginRight: '10px' }}
+        />
+        <span className={done}>{task}</span>
+      </div>
       <div>
         <i onClick={() => toggleEditing(!editing)} className='edit blue icon' />
         <i onClick={() => removeTodo(id)} className='times circle red icon' />
@@ -55,7 +66,11 @@ const Todo = ({ task, id, updateTodo, removeTodo }) => {
     </div>
   );
 
-  return <div className='item' style={{maxWidth: '300px', wordBreak: 'break-all'}}>{render}</div>;
+  return (
+    <div className='item' style={{ maxWidth: '300px', wordBreak: 'break-all' }}>
+      {render}
+    </div>
+  );
 };
 
 export default Todo;
