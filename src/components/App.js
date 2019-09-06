@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import NewTodoForm from './NewTodoForm';
 import TodoList from './TodoList';
 
 const App = () => {
   const [todos, updateTodos] = useState([]);
+
+  useEffect(() => {
+    updateTodos(JSON.parse(window.localStorage.getItem('todos')) || []);
+  }, []);
 
   return (
     <div

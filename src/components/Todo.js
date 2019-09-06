@@ -2,20 +2,25 @@ import React, { useState } from 'react';
 
 import './Todo.scss';
 
-const Todo = ({ task, id, updateTodo, removeTodo }) => {
+const Todo = ({
+  task,
+  id,
+  completed,
+  updateTodo,
+  removeTodo,
+  updateCompleted
+}) => {
   const [editing, toggleEditing] = useState(false);
-  const [isDone, toggleDone] = useState(false);
   const [text, updateText] = useState(task);
 
-  const color = isDone ? 'green' : '';
-  const done = isDone ? 'strike' : '';
+  const color = completed ? 'green' : '';
+  const done = completed ? 'strike' : '';
 
   const handleChange = e => {
     updateText(e.target.value);
   };
 
   const handleSave = () => {
-    //update todo
     updateTodo(text, id);
     toggleEditing(!editing);
   };
@@ -26,7 +31,8 @@ const Todo = ({ task, id, updateTodo, removeTodo }) => {
       style={{
         display: 'flex',
         justifyContent: 'space-between',
-        margin: '0 10px'
+        margin: '0 10px',
+        padding: '0 25px'
       }}
     >
       <input
@@ -36,11 +42,7 @@ const Todo = ({ task, id, updateTodo, removeTodo }) => {
         style={{ width: '80%' }}
         autoFocus
       />
-      <i
-        className='thumbs up green outline icon'
-        onClick={handleSave}
-        style={{ margin: 'auto' }}
-      />
+      <i className='thumbs up green outline icon' onClick={handleSave} />
     </div>
   ) : (
     <div
@@ -53,7 +55,7 @@ const Todo = ({ task, id, updateTodo, removeTodo }) => {
     >
       <div>
         <i
-          onClick={() => toggleDone(!done)}
+          onClick={() => updateCompleted(id)}
           className={`check ${color} icon`}
           style={{ marginRight: '10px' }}
         />

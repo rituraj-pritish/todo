@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
+import uuid from 'uuid/v4';
 
 const NewTodoForm = ({ todos, updateTodos }) => {
   const [text, updateText] = useState('');
-  let [count, countPlusOne] = useState(0);
   const btnDisabled = text ? '' : 'disabled';
 
   const handleSubmit = e => {
     e.preventDefault();
-    countPlusOne(count + 1);
-    updateTodos([...todos, { task: text, id: count }]);
+    updateTodos((todos = [...todos, { task: text, id: uuid(), completed: false }]));
+    window.localStorage.setItem('todos', JSON.stringify(todos));
     updateText('');
   };
 
