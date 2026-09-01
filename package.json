@@ -1,0 +1,19 @@
+{
+  "name": "tood",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server",
+    "build:client": "vite build --outDir dist/client --ssr-manifest && vite build --ssr app/index-server.jsx --outDir dist/server",
+    "start": "pnpm build:client && NODE_ENV=production node server"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.1",
+    "vite": "^8.2.2"
+  }
+}
