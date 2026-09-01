@@ -1,11 +1,11 @@
 {
-  "name": "tood",
+  "name": "todo",
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "node --watch server",
-    "build:client": "vite build --outDir dist/client --ssr-manifest && vite build --ssr app/index-server.jsx --outDir dist/server",
-    "start": "pnpm build:client && NODE_ENV=production node server"
+    "dev": "node --env-file=.env --watch server",
+    "build:view": "vite build --outDir dist__view/client --ssr-manifest && vite build --ssr view/index-server.jsx --outDir dist__view/server",
+    "start": "pnpm build:view && NODE_ENV=production node --env-file=.env.production server"
   },
   "dependencies": {
     "express": "^5.2.1",

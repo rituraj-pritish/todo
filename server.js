@@ -2,19 +2,23 @@ import express from 'express'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
-const isProduction = process.env.NODE_ENV === 'production'
-const PORT = process.env.PORT || 8000
-const BASE = process.env.BASE || '/'
-const APP_PATH = path.resolve('app')
+const PORT = process.env.PORT 
+const BASE = process.env.BASE_PATH
+const APP_PATH = path.resolve(process.env.VIEW_PATH || BASE)
+const BUILD_DIRECTORY = process.env.BUILD_DIRECTORY
 
-const templateHtml = isProduction
-  ? await fs.readFile(`./dist/client/index.html`, 'utf-8')
-  : ''
+const IS_DEVELOPMENT_ENVIRONMENT = !['production'].includes(process.env.NODE_ENV) 
+const TEMPLATE_PATH = `./${BUILD_DIRECTORY}/client/index.html`
+const SSR_SERVER_PATH = `./${BUILD_DIRECTORY}/server/index-server.js`
+
+const templateHtml = IS_DEVELOPMENT_ENVIRONMENT
+  ? ''
+  : await fs.readFile(TEMPLATE_PATH, 'utf-8')
 
 const app = express()
 
 let vite
-if (!isProduction) {
+if (IS_DEVELOPMENT_ENVIRONMENT) {
   const { createServer } = await import('vite')
   vite = await createServer({
     server: { middlewareMode: true },
@@ -30,19 +34,19 @@ app.use('*all', async (req, res) => {
 
     let template
     let render
-    if (!isProduction) {
+    if (IS_DEVELOPMENT_ENVIRONMENT) {
       template = await fs.readFile(`.${BASE}/index.html`, 'utf-8')
       template = await vite.transformIndexHtml(url, template)
       render = (await vite.ssrLoadModule(`${APP_PATH}/index-server.jsx`)).render
     } else {
       if(url.includes('assets')) {
         res.sendFile(url, {
-          root: './dist/client'
+          root: `./${BUILD_DIRECTORY}/client`,
         })
         return
       } else {
         template = templateHtml
-        render = (await import('./dist/server/index-server.js')).render
+        render = (await import(SSR_SERVER_PATH)).render
       }
     }
       
