@@ -4,8 +4,10 @@
   "type": "module",
   "scripts": {
     "dev": "node --env-file=.env --watch server",
-    "build:view": "vite build --outDir dist__view/client --ssr-manifest && vite build --ssr view/index-server.jsx --outDir dist__view/server",
-    "start": "pnpm build:view && NODE_ENV=production node --env-file=.env.production server"
+    "build": "vite build --outDir dist__view/client --ssr-manifest && vite build --ssr view/index-server.jsx --outDir dist__view/server",
+    "start": "NODE_ENV=production node --env-file=.env.production server",
+    "preview": "pnpm build && pnpm start",
+    "test": "pnpm exec playwright test --project=chromium"
   },
   "dependencies": {
     "express": "^5.2.1",
@@ -13,7 +15,7 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^6.1.1",
+    "@playwright/test": "^1.62.1",
     "vite": "^8.2.2"
   }
 }

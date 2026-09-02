@@ -5,7 +5,7 @@ export default () => {
 
   return (
     <>
-      <div>Count: {count}</div>
+      <span>Count: {count}</span>
       <button onClick={() => setCount(c => c - 1)}>Decrease</button>
       <button onClick={() => setCount(c => c + 1)}>Increase</button>
     </>

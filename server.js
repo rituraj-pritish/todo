@@ -4,7 +4,7 @@ import path from 'node:path'
 
 const PORT = process.env.PORT 
 const BASE = process.env.BASE_PATH
-const APP_PATH = path.resolve(process.env.VIEW_PATH || BASE)
+const APP_PATH = path.resolve(process.env.VIEW_DIRECTORY || BASE)
 const BUILD_DIRECTORY = process.env.BUILD_DIRECTORY
 
 const IS_DEVELOPMENT_ENVIRONMENT = !['production'].includes(process.env.NODE_ENV) 
@@ -69,3 +69,5 @@ app.use('*all', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`listening on ${PORT}`)
 })
+
+export default app
