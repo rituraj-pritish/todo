@@ -30,7 +30,7 @@ if (IS_DEVELOPMENT_ENVIRONMENT) {
 
 app.use('*all', async (req, res) => {
   try {
-    const url = req.originalUrl.replace(BASE, '')
+    let url = req.originalUrl.replace(BASE, '')
 
     let template
     let render
@@ -40,6 +40,12 @@ app.use('*all', async (req, res) => {
       render = (await vite.ssrLoadModule(`${APP_PATH}/index-server.jsx`)).render
     } else {
       if(url.includes('assets')) {
+        if(url.endsWith('.js')) {
+          url = url + '.gz'
+          res.set('Content-Encoding', 'gzip');
+          res.set('Content-Type', 'application/javascript');
+        }
+
         res.sendFile(url, {
           root: `./${BUILD_DIRECTORY}/client`,
         })
