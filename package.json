@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "node --env-file=.env --watch server",
+    "dev": "node --env-file=.env server",
     "minify": "node --env-file=.env.production minify.js",
-    "build": "vite build --outDir dist__view/client --ssr-manifest && vite build --ssr view/index-server.jsx --outDir dist__view/server && pnpm minify",
+    "build": "vite build --outDir dist__view/client --ssr-manifest && vite build --ssr view/index-server.jsx --outDir dist__view/server",
     "start": "NODE_ENV=production node --env-file=.env.production server",
     "preview": "pnpm build && pnpm start",
     "test": "pnpm exec playwright test --project=chromium"

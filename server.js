@@ -1,5 +1,4 @@
 import express from 'express'
-import fs from 'node:fs/promises'
 import path from 'node:path'
 
 const PORT = process.env.PORT 
@@ -8,12 +7,7 @@ const APP_PATH = path.resolve(process.env.VIEW_DIRECTORY || BASE)
 const BUILD_DIRECTORY = process.env.BUILD_DIRECTORY
 
 const IS_DEVELOPMENT_ENVIRONMENT = !['production'].includes(process.env.NODE_ENV) 
-const TEMPLATE_PATH = `./${BUILD_DIRECTORY}/client/index.html`
 const SSR_SERVER_PATH = `./${BUILD_DIRECTORY}/server/index-server.js`
-
-const templateHtml = IS_DEVELOPMENT_ENVIRONMENT
-  ? ''
-  : await fs.readFile(TEMPLATE_PATH, 'utf-8')
 
 const app = express()
 
@@ -28,43 +22,16 @@ if (IS_DEVELOPMENT_ENVIRONMENT) {
   app.use(vite.middlewares)
 } 
 
-app.use('*all', async (req, res) => {
+app.use(async (req, res) => {
   try {
-    let url = req.originalUrl.replace(BASE, '')
-
-    let template
     let render
     if (IS_DEVELOPMENT_ENVIRONMENT) {
-      template = await fs.readFile(`.${BASE}/index.html`, 'utf-8')
-      template = await vite.transformIndexHtml(url, template)
       render = (await vite.ssrLoadModule(`${APP_PATH}/index-server.jsx`)).render
     } else {
-      if(url.includes('assets')) {
-        if(url.endsWith('.js')) {
-          url = url + '.gz'
-          res.set('Content-Encoding', 'gzip');
-          res.set('Content-Type', 'application/javascript');
-        }
-
-        res.sendFile(url, {
-          root: `./${BUILD_DIRECTORY}/client`,
-        })
-        return
-      } else {
-        template = templateHtml
-        render = (await import(SSR_SERVER_PATH)).render
-      }
+      render = (await import(SSR_SERVER_PATH)).render
     }
       
-    const rendered = await render(url)
-
-    const html = template
-    .replace(`<!--app-head-->`, rendered.head ?? '')
-    .replace(`<!--app-html-->`, rendered.html ?? '')
-
-    res.status(200)
-      .set({ 'Content-Type': 'text/html' })
-      .send(html)
+    render(res)
   } catch (e) {
     vite?.ssrFixStacktrace(e)
     console.log('err', e.stack)
