@@ -16,3 +16,8 @@ const getBuildFile = file => {
 
 export const BUILD_PAGE_FILE = getBuildFile(PAGE_FILE)
 export const BUILD_LOADING_FILE = getBuildFile(LOADING_FILE)
+
+export const PGUSER = 'postgres'
+export const PGPASSWORD = 'password'
+export const PGHOST = 'localhost'
+export const PGPORT = 5432
