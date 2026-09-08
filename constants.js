@@ -4,12 +4,12 @@ export const IS_DEVELOPMENT_ENVIRONMENT = ![PRODUCTION_NODE_ENV].includes(proces
 export const PORT = 8000
 export const BUILD_DIR = 'dist'
 export const VIEW_SRC = 'src'
-export const LOADING_FILE = 'loading.jsx'
-export const PAGE_FILE = 'view.jsx'
+export const LOADING_FILE = 'index.loading.jsx'
+export const PAGE_FILE = 'index.jsx'
 export const INDEX_HTML_FILE = 'index.html'
 export const INDEX_HTML_PATH = `${VIEW_SRC}/${INDEX_HTML_FILE}`
 
-const getBuildFile = file => {
+export const getBuildFile = file => {
     if(typeof file !== 'string') throw new Error('argument should be a string, file path')
     return file.slice(0, file.length - 1)
 }
@@ -21,3 +21,5 @@ export const PGUSER = 'postgres'
 export const PGPASSWORD = 'password'
 export const PGHOST = 'localhost'
 export const PGPORT = 5432
+
+export const API_BUILDER_DIR = 'api-builder'

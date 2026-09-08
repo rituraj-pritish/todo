@@ -4,9 +4,10 @@ import stream from 'node:stream'
 import esbuild from 'esbuild'
 import { BUILD_DIR, BUILD_PAGE_FILE, IS_DEVELOPMENT_ENVIRONMENT } from './constants.js'
 
+// add to single build file
 await esbuild.build({
-    entryPoints: ['src/loading.jsx'],
-    outfile: 'dist/loading.js',
+    entryPoints: ['src/index.loading.jsx'],
+    outfile: 'dist/index.loading.js',
     jsx: 'automatic',
     jsxDev: IS_DEVELOPMENT_ENVIRONMENT,
     minify: !IS_DEVELOPMENT_ENVIRONMENT,
@@ -14,15 +15,16 @@ await esbuild.build({
 })
 
 await esbuild.build({
-    entryPoints: ['src/view.jsx'],
+    entryPoints: ['src/index.jsx', 'src/api-builder/index.jsx'],
+    outdir: BUILD_DIR,
     bundle: true,
-    outfile: 'dist/view.js',
     jsx: 'automatic',
     sourcemap: IS_DEVELOPMENT_ENVIRONMENT,
     jsxDev: IS_DEVELOPMENT_ENVIRONMENT,
     minify: !IS_DEVELOPMENT_ENVIRONMENT,
     treeShaking: true,
 })
+//end
 
 if(!IS_DEVELOPMENT_ENVIRONMENT) {
     const gzip = zlib.createGzip({level: zlib.constants.Z_BEST_COMPRESSION});
