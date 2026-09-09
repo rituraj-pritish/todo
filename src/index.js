@@ -2,6 +2,7 @@ import express from 'express'
 import fs from 'node:fs'
 import { renderToString } from 'react-dom/server'
 import { createElement } from 'react'
+import {writeBuildDir} from '../build.js'
 
 import { API_BUILDER_DIR, BUILD_DIR, BUILD_LOADING_FILE, BUILD_PAGE_FILE, INDEX_HTML_PATH, IS_DEVELOPMENT_ENVIRONMENT, PORT, VIEW_SRC } from '../constants.js'
 
@@ -9,17 +10,9 @@ import apiBuilder from './api-builder/index.js'
 
 const app = express()
 
-if(IS_DEVELOPMENT_ENVIRONMENT) {
-    fs.watch(VIEW_SRC, {recursive: true}, (_, filename) => {
-        if(filename) {
-            import('../build.js')
-        }
-    })
-}
+await writeBuildDir()
 
 app.use(`/${API_BUILDER_DIR}`, apiBuilder)
-
-// ***********--------------***************---------------****************
 
 app.use(`/${BUILD_DIR}`, (req, res) => {
     res.sendFile(req.url.replace(`/${BUILD_DIR}`, ''), {
@@ -31,7 +24,7 @@ const APPLICATION_TITLE = 'todo'
 
 app.use('/', async (req, res, next) => {
     if(req.url.startsWith('/api') || req.url.startsWith(`/${API_BUILDER_DIR}`)) {
-        next('route')
+        next('router')
     } else {
         const Loading = await import(`../${BUILD_DIR}/${BUILD_LOADING_FILE}`)
 

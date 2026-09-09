@@ -1,30 +1,42 @@
 import fs from 'node:fs'
+import { readdir } from 'node:fs/promises'
 import zlib from 'node:zlib'
 import stream from 'node:stream'
 import esbuild from 'esbuild'
-import { BUILD_DIR, BUILD_PAGE_FILE, IS_DEVELOPMENT_ENVIRONMENT } from './constants.js'
+import { 
+    BUILD_DIR, BUILD_PAGE_FILE, IS_DEVELOPMENT_ENVIRONMENT, LOADING_FILE, PAGE_FILE, VIEW_SRC 
+} from './constants.js'
 
-// add to single build file
-await esbuild.build({
-    entryPoints: ['src/index.loading.jsx'],
-    outfile: 'dist/index.loading.js',
-    jsx: 'automatic',
-    jsxDev: IS_DEVELOPMENT_ENVIRONMENT,
-    minify: !IS_DEVELOPMENT_ENVIRONMENT,
-    treeShaking: true,
-})
+export const writeBuildDir = async () => {
+    const files = await readdir(VIEW_SRC, {recursive: true})
+    const entryPoints = files.filter(name => name.includes(PAGE_FILE))
+        .map(path => `${VIEW_SRC}/${path}`)
 
-await esbuild.build({
-    entryPoints: ['src/index.jsx', 'src/api-builder/index.jsx'],
-    outdir: BUILD_DIR,
-    bundle: true,
-    jsx: 'automatic',
-    sourcemap: IS_DEVELOPMENT_ENVIRONMENT,
-    jsxDev: IS_DEVELOPMENT_ENVIRONMENT,
-    minify: !IS_DEVELOPMENT_ENVIRONMENT,
-    treeShaking: true,
-})
-//end
+    // index.jsx build
+    await esbuild.build({
+        entryPoints,
+        outdir: BUILD_DIR,
+        bundle: true,
+        jsx: 'automatic',
+        sourcemap: IS_DEVELOPMENT_ENVIRONMENT,
+        jsxDev: IS_DEVELOPMENT_ENVIRONMENT,
+        minify: !IS_DEVELOPMENT_ENVIRONMENT,
+        treeShaking: true,
+    })
+
+    const loadingEntryPoints = files.filter(name => name.includes(LOADING_FILE))
+        .map(path => `${VIEW_SRC}/${path}`)
+
+    await esbuild.build({
+        entryPoints: loadingEntryPoints,
+        outdir: BUILD_DIR,
+        jsx: 'automatic',
+        sourcemap: IS_DEVELOPMENT_ENVIRONMENT,
+        jsxDev: IS_DEVELOPMENT_ENVIRONMENT,
+        minify: !IS_DEVELOPMENT_ENVIRONMENT,
+        treeShaking: true,
+    })
+}
 
 if(!IS_DEVELOPMENT_ENVIRONMENT) {
     const gzip = zlib.createGzip({level: zlib.constants.Z_BEST_COMPRESSION});
