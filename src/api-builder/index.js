@@ -1,7 +1,7 @@
-import fs from 'node:fs'
+import fs from 'node:fs/promises'
 import express from 'express'
 
-import { API_BUILDER_DIR, BUILD_DIR, BUILD_LOADING_FILE, INDEX_HTML_PATH } from '../../constants.js'
+import { API_BUILDER_DIR, BUILD_DIR, BUILD_LOADING_FILE, HTML_PATH } from '../../constants.js'
 
 const router = express.Router()
 
@@ -9,50 +9,47 @@ router.use('/', async (req, res, next) => {
   if(req.url.startsWith('/api/')) {
     next('route')
   } else {
-    const basePath = `./${BUILD_DIR}/${API_BUILDER_DIR}`
-    const loadingFilePath = `${basePath}/${BUILD_LOADING_FILE}`
-    let loadingFileExists, Loading
-    fs.access(loadingFilePath, fs.constants.F_OK, doesNotExist => {
-        loadingFileExists = !doesNotExist
-    })
-    
-    if(loadingFileExists) {
-        Loading = await import(loadingFilePath)
+    const loadingFilePath = `${BUILD_DIR}/${API_BUILDER_DIR}/${BUILD_LOADING_FILE}`
+
+    // todo
+    // prepare html file while building
+
+    let html
+    try {
+      html = await fs.readFile(HTML_PATH, 'utf-8')
+    } catch (error) {
+      throw error
     }
 
-    fs.readFile(INDEX_HTML_PATH, (err, html) => {
-      if(err) throw err;
+    let Loading
+    try {
+      await fs.access(loadingFilePath, fs.constants.F_OK)
+      Loading = await import(loadingFilePath)
 
-      if(loadingFileExists) {
-          const loadingHTML = renderToString(createElement(Loading.default))
-          html = html.toString()
-              .replace("--ROOT--", loadingHTML)
-      } else {
-          html = html.toString()
-              .replace("--ROOT--", '')
-      }
+      const loadingHTML = renderToString(createElement(Loading.default))
+      html = html.toString()
+        .replace("--ROOT--", loadingHTML)
+    } catch (error) {
+      html = html.toString()
+        .replace("--ROOT--", '')
+    }
 
-      const cssFilePath = `${basePath}/index.css`
-      let cssFileExists
-      fs.access(cssFilePath, fs.constants.F_OK, doesNotExist => {
-          cssFileExists = !doesNotExist
-      })
-
-      if(cssFileExists) {
-          html = html
-              .replace("--HREF--", cssFilePath)
-      } else {
-          html = html
-              .replace(/<link[^>]*>[\s\S]*?/gi, '')
-              // .replace(CSS_PLACEHOLDER_ELEMENT, '')            
-      }
-
-      const jsFilePath = `${basePath}/index.js`
-      html = html
-          .replace("<script>\"--SCRIPT--\"</script>", `<script type="module" src="${jsFilePath}"></script>`)
+    const cssFilePath = `${BUILD_DIR}/${API_BUILDER_DIR}/index.css`
+    try {
+      await fs.access(cssFilePath, fs.constants.F_OK)
       
-      res.send(html)
-    })
+      html = html
+        .replace("--HREF--", cssFilePath)
+    } catch (error) {
+      html = html
+      .replace(/<link[^>]*>[\s\S]*?/gi, '') 
+    }
+
+    const jsFilePath = `${BUILD_DIR}/${API_BUILDER_DIR}/index.js`
+    html = html
+        .replace("<script>\"--SCRIPT--\"</script>", `<script type="module" src="${jsFilePath}"></script>`)
+    
+    res.send(html)
   }
 })
 

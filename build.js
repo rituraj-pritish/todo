@@ -1,18 +1,20 @@
 import fs from 'node:fs'
-import { readdir } from 'node:fs/promises'
+import { readdir, access, constants } from 'node:fs/promises'
 import zlib from 'node:zlib'
 import stream from 'node:stream'
 import esbuild from 'esbuild'
+import { exec } from 'node:child_process'
+
 import { 
-    BUILD_DIR, BUILD_PAGE_FILE, IS_DEVELOPMENT_ENVIRONMENT, LOADING_FILE, PAGE_FILE, VIEW_SRC 
+    BUILD_DIR, BUILD_PAGE_FILE, CSS_FILE, IS_DEVELOPMENT_ENVIRONMENT, LOADING_FILE, PAGE_FILE, SOURCE_DIR 
 } from './constants.js'
 
 export const writeBuildDir = async () => {
-    const files = await readdir(VIEW_SRC, {recursive: true})
+    const files = await readdir(SOURCE_DIR, {recursive: true})
     const entryPoints = files.filter(name => name.includes(PAGE_FILE))
-        .map(path => `${VIEW_SRC}/${path}`)
+        .map(path => `${SOURCE_DIR}/${path}`)
 
-    // index.jsx build
+    // jsx build
     await esbuild.build({
         entryPoints,
         outdir: BUILD_DIR,
@@ -25,7 +27,7 @@ export const writeBuildDir = async () => {
     })
 
     const loadingEntryPoints = files.filter(name => name.includes(LOADING_FILE))
-        .map(path => `${VIEW_SRC}/${path}`)
+        .map(path => `${SOURCE_DIR}/${path}`)
 
     await esbuild.build({
         entryPoints: loadingEntryPoints,
@@ -36,6 +38,24 @@ export const writeBuildDir = async () => {
         minify: !IS_DEVELOPMENT_ENVIRONMENT,
         treeShaking: true,
     })
+
+    // todo
+    // build index css for every loading file, if exists
+    // else
+    // build for page file
+
+    // css build
+    const cssEntryPoints = files.filter(name => name.includes(CSS_FILE))
+        .map(path => `${SOURCE_DIR}/${path}`)
+
+    for(const entryFile of cssEntryPoints) {
+        try {
+            await access(entryFile, constants.F_OK)
+            exec(`npx @tailwindcss/cli -i ${entryFile} -o ${entryFile.replace('src/', 'dist/')}`)
+        } catch (error) {
+            
+        }
+    }
 }
 
 if(!IS_DEVELOPMENT_ENVIRONMENT) {

@@ -4,7 +4,7 @@ import { renderToString } from 'react-dom/server'
 import { createElement } from 'react'
 import {writeBuildDir} from '../build.js'
 
-import { API_BUILDER_DIR, BUILD_DIR, BUILD_LOADING_FILE, BUILD_PAGE_FILE, INDEX_HTML_PATH, IS_DEVELOPMENT_ENVIRONMENT, PORT, VIEW_SRC } from '../constants.js'
+import { API_BUILDER_DIR, BUILD_DIR, BUILD_LOADING_FILE, BUILD_PAGE_FILE, HTML_PATH, PORT } from '../constants.js'
 
 import apiBuilder from './api-builder/index.js'
 
@@ -29,7 +29,7 @@ app.use('/', async (req, res, next) => {
         const Loading = await import(`../${BUILD_DIR}/${BUILD_LOADING_FILE}`)
 
         // make part of build process, and move to dist folder
-        fs.readFile(INDEX_HTML_PATH, (err, html) => {
+        fs.readFile(HTML_PATH, (err, html) => {
             if(err) throw err;
 
             const loadingHTML = renderToString(createElement(Loading.default))
