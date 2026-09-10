@@ -9,7 +9,7 @@ import {
     BUILD_DIR, BUILD_PAGE_FILE, CSS_FILE, IS_DEVELOPMENT_ENVIRONMENT, LOADING_FILE, PAGE_FILE, SOURCE_DIR 
 } from './constants.js'
 
-export const writeBuildDir = async () => {
+export const serveBuildDir = async () => {
     const files = await readdir(SOURCE_DIR, {recursive: true})
     const entryPoints = files.filter(name => name.includes(PAGE_FILE))
         .map(path => `${SOURCE_DIR}/${path}`)
@@ -39,11 +39,6 @@ export const writeBuildDir = async () => {
         treeShaking: true,
     })
 
-    // todo
-    // build index css for every loading file, if exists
-    // else
-    // build for page file
-
     // css build
     const cssEntryPoints = files.filter(name => name.includes(CSS_FILE))
         .map(path => `${SOURCE_DIR}/${path}`)
@@ -53,7 +48,7 @@ export const writeBuildDir = async () => {
             await access(entryFile, constants.F_OK)
             exec(`npx @tailwindcss/cli -i ${entryFile} -o ${entryFile.replace('src/', 'dist/')}`)
         } catch (error) {
-            
+            // no corresponding css file
         }
     }
 }

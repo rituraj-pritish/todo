@@ -3,7 +3,7 @@
     "version": "0.1.0",
     "type": "module",
     "scripts": {
-        "build": "node build",
+        "serve": "node serve",
         "dev": "node --watch-path=src src/index.js"
     },
     "dependencies": {
