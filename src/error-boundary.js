@@ -24,7 +24,7 @@ class ErrorBoundary extends React.Component {
         })
     }
 
-    // fix component stack to display source code
+    // fix component stack to display source code directory stack
     render() {
         if(this.state.hasError) {
             return (

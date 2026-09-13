@@ -2,6 +2,8 @@ import { createContext, createElement, useContext, useEffect, useState } from "r
 
 import ErrorBoundary from "../error-boundary"
 
+// https://tailwindcss.com/docs/detecting-classes-in-source-files#dynamic-class-names
+
 const Input = (props) => {
   return (
     <input {...props} 
@@ -28,36 +30,16 @@ const Button = props => {
   )
 }
 
-const generateJSX = (Component, props, ...children) => {
-  // remove local event handlers
-  return `
-    <${Component.name} ${Object.entries(props).map(([key, value]) => `${key}=${value}`).join(' ')}>
-      ${children.length > 1 ? children.map((childArgs) => {
-        return generateJSX(...childArgs)
-      }).join('') : children}
-    </${Component.name}>
-  `
-}
-
 const INITIAL_CONTEXT_VALUE = {
-  args: [
-         Form, 
-      {
-        key: 'Form',
-        identifier: 'Form'
-      },
-       [Input,
-          {
-            key: 'Form.Input',
-            identifier: 'Form.Input'
-          }],
-      [Button,
-      {
-        key: 'Form.Button',
-        identifier: 'Form.Button'
-      },
-      'Btn Text']
-  ],
+  component: {
+    name: '',
+    dom: {
+
+    },
+    endpoint: {
+
+    }
+  },
   selectionIdentifier: null
 }
 
@@ -65,6 +47,11 @@ const ComponentContext = createContext(INITIAL_CONTEXT_VALUE)
 
 const ComponentProvider = ({children}) => {
   const [value, setValue] = useState(INITIAL_CONTEXT_VALUE)
+
+  const {
+    dom,
+    endpoint
+  } = value
 
   const setSelectionIdentifier = (identifier) => {
     setValue(prevValue => ({
@@ -75,7 +62,20 @@ const ComponentProvider = ({children}) => {
 
   return (
     <ComponentContext value={{
-      ...value,
+      dom,
+      endpoint,
+      updateDom: updatedDomCb => {
+        setValue(prevValue => ({
+          ...prevValue,
+          dom: updatedDomCb(prevValue)
+        }))
+      },
+      updateEndpoint: updatedEndpoint => {
+        setValue(prevValue => ({
+          ...prevValue,
+          endpoint: updatedEndpoint
+        }))
+      },
       setSelectionIdentifier
     }}>
       {children}
@@ -83,74 +83,63 @@ const ComponentProvider = ({children}) => {
   )
 }
 
-  const BasicElements = () => {
-    return (
-       <div className="grid grid-cols-auto grid-flow-col  gap-4">
-      <Button 
-        className={'hover:bg-orange-100 px-6 py-2 border-2 rounded-sm border-orange-300 text-orange-300'}
-        onClick={() => add('form')}
-      >
-        Form
-      </Button>
-            <Button 
-        className={'hover:bg-green-100 px-6 py-2 border-2 rounded-sm border-green-300 text-green-300'}
-        onClick={() => add('data')}
-      >
-        Data
-      </Button>
-      </div>
-    )
+const UpdateDom = () => {
+  const {updateDom} = useContext(ComponentContext)
+
+  const add = (type) => {
+    updateDom(prevDom => {
+      if(type === 'save') {
+        return {
+          ...prevDom,
+          node: {
+            'form': {
+              
+            }
+          }
+        }
+      }
+    })
   }
 
-    const FormElements = () => {
-    return (
-       <div className="grid grid-cols-auto grid-flow-col  gap-4">
-      <Button 
-        className={'hover:bg-blue-100 px-6 py-2 border-2 rounded-sm border-blue-300 text-blue-300'}
-        onClick={() => add('input')}
-      >
-        Input
-      </Button>
-            <Button 
-        className={'hover:bg-slate-100 px-6 py-2 border-2 rounded-sm border-slate-300 text-slate-300'}
-        onClick={() => add('button')}
-      >
-        Button
-      </Button>
-      </div>
-    )
+  const button = 'cursor-pointer px-4 py-2 border-2 border-dotted rounded-l'
+
+  return (
+    <div className="grid grid-flow-col gap-4">
+      <button className={`${button} border-blue-500`} onClick={() => add('save')}>save data</button>
+      <button className={`${button} border-green-500`} onClick={() => add('retreive')}>retreive data</button>
+    </div>
+  )
+}
+
+const Dom = () => {
+  const {dom} = useContext(ComponentContext)
+
+  if(!dom) return null
+
+  const {node, props, children} = dom
+
+  const createNode = (nodeConfig) => {
+    let element
+    switch(Object.keys(nodeConfig)[0]) {
+      case 'form':
+        element = Form
+        break;
+    }
+
+    return element
   }
 
-    const InputOptions = () => {
-    return (
-      <Input placeholder='placeholder'/>
-    )
-  }
-
-  const ButtonOptions = () => {
-    return (
-      <Input placeholder='button text'/>
-    )
-  }
-
-
-const Options = () => {
-  const {selectionIdentifier} = useContext(ComponentContext)
-
-  if(selectionIdentifier?.endsWith('Form')) {
-    return <FormElements/>
-  } else if(selectionIdentifier?.endsWith('Input')) {
-    return <InputOptions/>
-  } else if(selectionIdentifier?.endsWith('Button')) {
-    return <ButtonOptions/>
-  } else {
-    return <BasicElements/>
-  }
+  return (
+    <div className="border p-2">
+     {createElement(
+      createNode(node), props, children
+     )}
+    </div>
+  )
 }
 
 export default () => {
-  const {args} = useContext(ComponentContext)
-
+  // add only in dev version
   useEffect(() => {
     const eventSource = new EventSource('/api/re-load')
     eventSource.onmessage = () => {
@@ -165,35 +154,17 @@ export default () => {
     }
   }, [])
 
-  const render = (Component, props, ...childArgs) => {
-    const children = childArgs?.length > 1
-      ? childArgs.map(cArgs => render(...cArgs))
-      : childArgs[0]
-      
-    return createElement(
-      Component,
-      props,
-      children
-    )
-  }
-
   return (
     <ErrorBoundary>
       <ComponentProvider>
-        <section className="m-2 p-2">
-        
-        <Input value='Component' />
-        <div className="p-4 border-1 border-black-100">
-          {args.length > 0 ? render(...args) : null}
-        </div>
-
-
-        <hr className="my-4"/>
-          <p>select element from above to view element specific options</p>
-
-          <Options/>
-          <br/>
-          <Button onClick={() => generateJSX(...args)}>Generate JSX</Button>
+        <section>
+          <div className="p-2" style={{height: '50vh'}}>
+            <UpdateDom/>
+          </div>
+          <hr/>
+          <div className="p-2" style={{height: '50vh'}}>
+            <Dom/>
+          </div>
         </section>
       </ComponentProvider>
     </ErrorBoundary>
