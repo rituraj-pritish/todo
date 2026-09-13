@@ -17,13 +17,23 @@ class ErrorBoundary extends React.Component {
     }
 
     componentDidCatch(error, info) {
-
-        console.log('error', error, info)
+        this.setState({
+            hasError: true,
+            error,
+            info
+        })
     }
 
+    // fix component stack to display source code
     render() {
         if(this.state.hasError) {
-            return error
+            return (
+                `
+                    ${this.state.error?.message}
+                
+                    ${this.state.info?.componentStack}
+                `
+            )
         }
 
         return this.props.children
