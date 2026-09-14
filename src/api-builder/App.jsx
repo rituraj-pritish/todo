@@ -2,12 +2,34 @@ import { createContext, createElement, useContext, useEffect, useState } from "r
 
 import ErrorBoundary from "../error-boundary"
 
-// https://tailwindcss.com/docs/detecting-classes-in-source-files#dynamic-class-names
+const colors = {
+  form: {
+    border: 'border-orange-300',
+  },
+  input: {
+    border: 'border-blue-300'
+  },
+  button: {
+    border: 'border-red-300'
+  }
+}
+
+const classNames = {
+  form: {
+    border: `border border-2 border-dashed ${colors.form.border} rounded-sm`
+  },
+  input: {
+    border: `border ${colors.input.border} rounded-sm`
+  },
+  button: {
+    border: `border ${colors.button.border} rounded-sm`
+  }
+}
 
 const Input = (props) => {
   return (
     <input {...props} 
-      className="px-2 border rounded-sm border-blue-300"
+      className={`${props.className} px-2 ${classNames.input.border}`}
     />
   )
 }
@@ -16,7 +38,7 @@ const Form = (props) => {
   return (
     <form 
       {...props}
-      className={'p-2 border-2 rounded-sm border-dashed border-orange-300'}
+      className={`${props.className || ''} p-2 ${classNames.form.border}`}
     />
   )
 }
@@ -25,7 +47,7 @@ const Button = props => {
   return (
     <button 
       {...props} 
-      className={'cursor-pointer border rounded-sm border-red-300'} 
+      className={`cursor-pointer ${props.className || ''} ${classNames.button.border}`} 
     />
   )
 }
@@ -34,7 +56,30 @@ const INITIAL_CONTEXT_VALUE = {
   component: {
     name: '',
     dom: {
+      id: 'form.0',
+      node: {
+            'form': {
+            }
+          },
+      children: [
+        {
+          id: 'input.1',
+          node: {
+            input: {
 
+            }
+          }
+        },
+        {
+          id: 'button.2',
+          node: {
+            button: {
+
+            }
+          },
+          children: 'btn text'
+        }
+      ]
     },
     endpoint: {
 
@@ -49,8 +94,8 @@ const ComponentProvider = ({children}) => {
   const [value, setValue] = useState(INITIAL_CONTEXT_VALUE)
 
   const {
-    dom,
-    endpoint
+    component: { dom, endpoint },
+    selectionIdentifier
   } = value
 
   const setSelectionIdentifier = (identifier) => {
@@ -62,12 +107,16 @@ const ComponentProvider = ({children}) => {
 
   return (
     <ComponentContext value={{
+      selectionIdentifier,
       dom,
       endpoint,
       updateDom: updatedDomCb => {
         setValue(prevValue => ({
           ...prevValue,
-          dom: updatedDomCb(prevValue)
+          component: {
+            ...prevValue.component,
+            dom: updatedDomCb(prevValue.component.dom)
+          }
         }))
       },
       updateEndpoint: updatedEndpoint => {
@@ -84,7 +133,7 @@ const ComponentProvider = ({children}) => {
 }
 
 const UpdateDom = () => {
-  const {updateDom} = useContext(ComponentContext)
+  const {updateDom, selectionIdentifier} = useContext(ComponentContext)
 
   const add = (type) => {
     updateDom(prevDom => {
@@ -92,10 +141,25 @@ const UpdateDom = () => {
         return {
           ...prevDom,
           node: {
-            'form': {
+            form: {
               
             }
           }
+        }
+      }
+
+      if(['input', 'button'].includes(type)) {
+        return {
+          ...prevDom,
+          children: (prevDom.children || []).concat({
+            id: `${type}.${(prevDom.chilren || []).length + 1}`,
+            node: {
+              [type]: {
+
+              }
+            },
+            children: type === 'button' ? 'submit' : undefined
+          })
         }
       }
     })
@@ -103,37 +167,115 @@ const UpdateDom = () => {
 
   const button = 'cursor-pointer px-4 py-2 border-2 border-dotted rounded-l'
 
+  const getOptions = (identifier) => {
+    switch(true) {
+      case identifier?.startsWith('form'): {
+        return (
+          <>
+            <button className={`${button} border-blue-500`} onClick={() => add('input')}>input</button>
+            <button className={`${button} border-red-500`} onClick={() => add('button')}>button</button>
+          </>
+        )
+      }
+
+      case identifier?.startsWith('input'): {
+        return (
+          <>
+          </>
+        )
+      }
+
+      default: {
+        return (
+          <>
+            <button className={`${button} border-blue-500`} onClick={() => add('save')}>save data</button>
+            <button className={`${button} border-green-500`} onClick={() => add('retreive')}>retreive data</button>
+          </>
+        )
+      }
+    }
+  }
+
   return (
     <div className="grid grid-flow-col gap-4">
-      <button className={`${button} border-blue-500`} onClick={() => add('save')}>save data</button>
-      <button className={`${button} border-green-500`} onClick={() => add('retreive')}>retreive data</button>
+      {getOptions(selectionIdentifier)}
+    </div>
+  )
+}
+
+const ElementSelector = () => {
+  const {dom, setSelectionIdentifier, selectionIdentifier} = useContext(ComponentContext)
+
+  const getSelector = (config) => {
+    const baseElement = config.id.split('.')[0]
+    return (
+      <>
+        <span 
+          className={`cursor-pointer grid grid-flow-col items-center hover:bg-purple-200 ${selectionIdentifier === config.id ? 'bg-purple-400' : ''}`} 
+          onClick={() => setSelectionIdentifier(config.id)}
+        >
+          <span className={`inline-block w-10 h-2 ${classNames?.[baseElement]?.border}`}></span>
+          <p className="">{baseElement}</p>
+        </span>
+        {Array.isArray(config.children) ? config.children.map(childConfig => getSelector(childConfig)) : undefined}
+      </>
+    )
+  }
+
+  return (
+    <div className="h-full p-2 border-l">
+      {getSelector(dom)}
     </div>
   )
 }
 
 const Dom = () => {
-  const {dom} = useContext(ComponentContext)
+  const {dom, selectionIdentifier} = useContext(ComponentContext)
 
   if(!dom) return null
 
-  const {node, props, children} = dom
+  const createNode = (domConfig) => {
+    const newConfig = {...domConfig}
 
-  const createNode = (nodeConfig) => {
-    let element
-    switch(Object.keys(nodeConfig)[0]) {
-      case 'form':
-        element = Form
-        break;
+    if(newConfig.id.startsWith('form')) {
+      newConfig.node = Form
+    }
+    
+    if(newConfig.id.startsWith('input')) {
+      newConfig.node = Input
     }
 
-    return element
+    if(newConfig.id.startsWith('button')) {
+      newConfig.node = Button
+    }
+
+    // find alternate solution to override classname other than !important
+    if(newConfig.id === selectionIdentifier) {
+      newConfig.props = {
+        ...newConfig.props,
+        className: `border-2 !border-purple-400 ${newConfig.props?.className || ''}`
+      }
+    }
+
+    if(newConfig.children) {
+      if(Array.isArray(newConfig.children)) {
+        newConfig.children = newConfig.children.map(childConfig => {
+          return createNode(childConfig)
+        })
+      }
+    }
+
+    return createElement(newConfig.node, newConfig.props, newConfig.children)
   }
 
   return (
-    <div className="border p-2">
-     {createElement(
-      createNode(node), props, children
-     )}
+    <div className="grid grid-flow-col grid" style={{height: '50vh'}}>
+      <div className="p-2 col-span-20">
+        {
+          createNode(dom)
+        }
+      </div>
+      <ElementSelector/>
     </div>
   )
 }
@@ -162,9 +304,7 @@ export default () => {
             <UpdateDom/>
           </div>
           <hr/>
-          <div className="p-2" style={{height: '50vh'}}>
-            <Dom/>
-          </div>
+          <Dom/>
         </section>
       </ComponentProvider>
     </ErrorBoundary>
