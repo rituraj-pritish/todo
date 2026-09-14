@@ -1,4 +1,4 @@
-import { createContext, createElement, useContext, useEffect, useState } from "react"
+import { createContext, createElement, Fragment, useContext, useEffect, useState } from "react"
 
 import ErrorBoundary from "../error-boundary"
 
@@ -16,7 +16,7 @@ const colors = {
 
 const classNames = {
   form: {
-    border: `border border-2 border-dashed ${colors.form.border} rounded-sm`
+    border: `border border-dashed ${colors.form.border} rounded-sm`
   },
   input: {
     border: `border ${colors.input.border} rounded-sm`
@@ -203,22 +203,70 @@ const UpdateDom = () => {
   )
 }
 
+const hoverBorder = '!border-2 !border-purple-300'
+
 const ElementSelector = () => {
-  const {dom, setSelectionIdentifier, selectionIdentifier} = useContext(ComponentContext)
+  const {dom, updateDom, setSelectionIdentifier, selectionIdentifier} = useContext(ComponentContext)
 
   const getSelector = (config) => {
     const baseElement = config.id.split('.')[0]
     return (
-      <>
+      <Fragment key={config.id}>
         <span 
           className={`cursor-pointer grid grid-flow-col items-center hover:bg-purple-200 ${selectionIdentifier === config.id ? 'bg-purple-400' : ''}`} 
           onClick={() => setSelectionIdentifier(config.id)}
+          onMouseEnter={() => {
+            updateDom(prevDom => {
+              const newDom = {...prevDom}
+
+              if(config.id.startsWith('form')) {
+                newDom.props = {
+                  ...newDom.props,
+                  className: `${newDom?.props?.className || ''} ${hoverBorder}`
+                }
+              } else if(Array.isArray(newDom.children)) {
+                newDom.children = newDom.children.map(childConfig => {
+                  if(childConfig.id === config.id) return {
+                    ...childConfig,
+                    props: {
+                      ...childConfig.props,
+                      className: `${childConfig?.props?.className || ''} ${hoverBorder}`
+                    }
+                  }
+
+                  return childConfig
+                })
+              }
+
+              return newDom
+            })
+          }}
+          onMouseLeave={() => {
+            updateDom(prevDom => {
+              const newDom = {...prevDom}
+
+              if(config.id.startsWith('form')) {
+                newDom.props.className = newDom.props.className.replace(hoverBorder, '')
+              } if(Array.isArray(newDom.children)) {
+                newDom.children = newDom.children.map(childConfig => {
+                  if(childConfig.id === config.id) return {
+                    ...childConfig,
+                    props: {
+                      className: childConfig.props.className.replace(hoverBorder, '')
+                    }
+                  }
+                  return childConfig
+                })
+              }
+              return newDom
+            })
+          }}
         >
           <span className={`inline-block w-10 h-2 ${classNames?.[baseElement]?.border}`}></span>
           <p className="">{baseElement}</p>
         </span>
         {Array.isArray(config.children) ? config.children.map(childConfig => getSelector(childConfig)) : undefined}
-      </>
+      </Fragment>
     )
   }
 
@@ -237,6 +285,10 @@ const Dom = () => {
   const createNode = (domConfig) => {
     const newConfig = {...domConfig}
 
+    newConfig.props = {
+      ...newConfig.props,
+      key: newConfig.id
+    }
     if(newConfig.id.startsWith('form')) {
       newConfig.node = Form
     }
