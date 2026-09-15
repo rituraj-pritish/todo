@@ -17,12 +17,18 @@ const colors = {
     hover: 'bg-purple-300',
     border: 'border-purple-400',
     selected: 'bg-purple-500'
+  },
+  data: {
+    border: 'border-green-300'
   }
 }
 
 const classNames = {
   form: {
     border: `border border-dashed ${colors.form.border}`
+  },
+  data: {
+    border: `border border-dashed ${colors.data.border}`
   },
   input: {
     border: `border ${colors.input.border}`
@@ -34,7 +40,7 @@ const classNames = {
   selection: {
     hover: 'hover:bg-purple-300',
     border: '!border-2 !border-purple-400',
-    selected: `!${colors.selection.selected}`
+    selected: 'bg-purple-500',
   }
 }
 
@@ -64,7 +70,16 @@ const Button = props => {
   )
 }
 
-const INITIAL_CONTEXT_VALUE = {
+const Data = props => {
+  return (
+    <div className={`${props.className || ''} p-2 ${classNames.data.border}`}>
+
+    </div>
+  )
+}
+
+const COMPONENT_CONTEXT_VALUE = {
+  published: [],
   component: {
     name: '',
     dom: {
@@ -95,17 +110,22 @@ const INITIAL_CONTEXT_VALUE = {
     },
     endpoint: {
 
-    }
-  },
-  selectionIdentifier: null
+    },
+    selectionIdentifier: null
+  }
 }
 
-const ComponentContext = createContext(INITIAL_CONTEXT_VALUE)
+const ComponentContext = createContext(COMPONENT_CONTEXT_VALUE)
 
 const ComponentProvider = ({children}) => {
-  const [value, setValue] = useState(INITIAL_CONTEXT_VALUE)
+  const {create, getAll} = useLocalStorage('components')
+  const [value, setValue] = useState(() => getAll().length > 0 ? {
+    ...COMPONENT_CONTEXT_VALUE,
+    published: getAll()
+  } : COMPONENT_CONTEXT_VALUE)
 
   const {
+    published,
     component: { dom, endpoint },
     selectionIdentifier
   } = value
@@ -119,9 +139,19 @@ const ComponentProvider = ({children}) => {
 
   return (
     <ComponentContext value={{
+      published,
       selectionIdentifier,
       dom,
       endpoint,
+      publishComponent: () => {
+        setValue(prevValue => {
+          create(prevValue.component)
+          return {
+          ...prevValue,
+          published: [...prevValue.published, prevValue.component],
+          component: COMPONENT_CONTEXT_VALUE.component
+        }})
+      },
       updateDom: (...args) => {
         // update base node
         if(args.length === 1) {
@@ -182,20 +212,28 @@ const ComponentProvider = ({children}) => {
   )
 }
 
-const BASE_FORM_ID = 'form'
+const ComponentList = () => {
+  const {published} = useContext(ComponentContext)
+
+  return (
+    <div className="">
+      {published.map(component => 'comp')}
+    </div>
+  )
+}
 
 const UpdateDom = () => {
-  const {updateDom, selectionIdentifier} = useContext(ComponentContext)
+  const {publishComponent, dom, updateDom, selectionIdentifier} = useContext(ComponentContext)
   const {create} = useLocalStorage('db')
 
   const add = (type) => {
     updateDom(prevDom => {
-      if(type === 'save') {
+      if(['form', 'data'].includes(type)) {
         return {
           ...prevDom,
-          id: `${BASE_FORM_ID}.0`,
+          id: `${type}.0`,
           node: {
-            form: {
+            [type]: {
               
             }
           },
@@ -206,7 +244,7 @@ const UpdateDom = () => {
       }
 
       if(['input', 'button'].includes(type)) {
-        const id = `${type}.${(prevDom.chilren || []).length + 1}-${BASE_FORM_ID}.0`
+        const id = `${type}.${(prevDom.children || []).length + 1}-${dom.id}`
         return {
           ...prevDom,
           children: (prevDom.children || []).concat({
@@ -233,12 +271,20 @@ const UpdateDom = () => {
   }
 
   const getOptions = (identifier) => {
-    switch(true) {
+    switch(true) { 
       case identifier?.startsWith('form'): {
         return (
           <>
-            <button className={`${classNames.button.base} border-blue-500`} onClick={() => add('input')}>input</button>
-            <button className={`${classNames.button.base} border-red-500`} onClick={() => add('button')}>button</button>
+            <button className={`border-blue-500`} onClick={() => add('input')}>input</button>
+            <button className={`border-red-500`} onClick={() => add('button')}>button</button>
+          </>
+        )
+      }
+
+      case identifier?.startsWith('data'): {
+        return (
+          <>
+            <p>select a component</p>
           </>
         )
       }
@@ -293,20 +339,24 @@ const UpdateDom = () => {
         )
       }
 
-      default: {
+      default: 
         return (
           <>
-            <button className={`${classNames.button.base} border-blue-500`} onClick={() => add('save')}>save data</button>
-            <button className={`${classNames.button.base} border-green-500`} onClick={() => add('retreive')}>retreive data</button>
+            <button className={`border-blue-500`} onClick={() => add('form')}>save data</button>
+            <button className={`border-green-500`} onClick={() => add('data')}>retreive data</button>
           </>
         )
-      }
+      
     }
   }
 
   return (
-    <div className="grid grid-flow-col gap-4">
+    <div className="h-full flex flex-col">
+    <div className="grow grid grid-flow-col items-start gap-4">
       {getOptions(selectionIdentifier)}
+    </div>
+
+            <button onClick={publishComponent}>publish</button>
     </div>
   )
 }
@@ -338,6 +388,9 @@ const ElementsList = () => {
           <p className="">{baseElement}</p>
           <span onClick={(e) => {
             e.stopPropagation()
+            if(config.id === dom.id) {
+              setSelectionIdentifier(null)
+            }   
             updateDom(config.id, null, {delete: true})
           }} >d</span>
         </span>
@@ -375,6 +428,10 @@ const Dom = () => {
 
     if(newConfig?.id?.startsWith('button')) {
       newConfig.node = Button
+    }
+
+    if(newConfig?.id?.startsWith('data')) {
+      newConfig.node = Data
     }
 
     // find alternate solution to override classname other than !important
@@ -428,8 +485,11 @@ export default () => {
     <ErrorBoundary>
       <ComponentProvider>
         <section>
-          <div className="p-2" style={{height: '50vh'}}>
+          <div className="p-2 flex" style={{height: '50vh'}}>
+            <ComponentList/>
+            <div className="grow">
             <UpdateDom/>
+            </div>
           </div>
           <hr/>
           <Dom/>
