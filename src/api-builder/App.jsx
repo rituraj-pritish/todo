@@ -1,4 +1,5 @@
 import { createContext, createElement, Fragment, useContext, useEffect, useState } from "react"
+import useLocalStorage from './useLocalStorage.js'
 
 import ErrorBoundary from "../error-boundary"
 
@@ -11,18 +12,29 @@ const colors = {
   },
   button: {
     border: 'border-red-300'
+  },
+  selection: {
+    hover: 'bg-purple-300',
+    border: 'border-purple-400',
+    selected: 'bg-purple-500'
   }
 }
 
 const classNames = {
   form: {
-    border: `border border-dashed ${colors.form.border} rounded-sm`
+    border: `border border-dashed ${colors.form.border}`
   },
   input: {
-    border: `border ${colors.input.border} rounded-sm`
+    border: `border ${colors.input.border}`
   },
   button: {
-    border: `border ${colors.button.border} rounded-sm`
+    base: 'cursor-pointer px-4 py-2',
+    border: 'border border-red-300'
+  },
+  selection: {
+    hover: 'hover:bg-purple-300',
+    border: '!border-2 !border-purple-400',
+    selected: `!${colors.selection.selected}`
   }
 }
 
@@ -38,7 +50,7 @@ const Form = (props) => {
   return (
     <form 
       {...props}
-      className={`${props.className || ''} p-2 ${classNames.form.border}`}
+      className={`p-2 ${classNames.form.border} ${props.className || ''}`}
     />
   )
 }
@@ -47,7 +59,7 @@ const Button = props => {
   return (
     <button 
       {...props} 
-      className={`cursor-pointer ${props.className || ''} ${classNames.button.border}`} 
+      className={`${props.className || ''} cursor-pointer ${classNames.button.border}`} 
     />
   )
 }
@@ -56,30 +68,30 @@ const INITIAL_CONTEXT_VALUE = {
   component: {
     name: '',
     dom: {
-      id: 'form.0',
-      node: {
-            'form': {
-            }
-          },
-      children: [
-        {
-          id: 'input.1',
-          node: {
-            input: {
+      // id: 'form.0',
+      // node: {
+      //       'form': {
+      //       }
+      //     },
+      // children: [
+      //   {
+      //     id: 'input.0-form.0',
+      //     node: {
+      //       input: {
 
-            }
-          }
-        },
-        {
-          id: 'button.2',
-          node: {
-            button: {
+      //       }
+      //     }
+      //   },
+      //   {
+      //     id: 'button.1-form.0',
+      //     node: {
+      //       button: {
 
-            }
-          },
-          children: 'btn text'
-        }
-      ]
+      //       }
+      //     },
+      //     children: 'btn text'
+      //   }
+      // ]
     },
     endpoint: {
 
@@ -110,14 +122,52 @@ const ComponentProvider = ({children}) => {
       selectionIdentifier,
       dom,
       endpoint,
-      updateDom: updatedDomCb => {
-        setValue(prevValue => ({
+      updateDom: (...args) => {
+        // update base node
+        if(args.length === 1) {
+          const [updatedDomCb] = args
+
+                  setValue(prevValue => ({
           ...prevValue,
           component: {
             ...prevValue.component,
             dom: updatedDomCb(prevValue.component.dom)
           }
         }))
+        }
+
+        // update nested node
+        if(args.length >= 2) {
+          const [configId, updateConfigCb, options] = args
+
+          setValue(prevValue => {
+            const newValue = {...prevValue}
+
+            const dom = newValue.component.dom
+            const [elementId, parentId] = configId.split('-')
+
+            if(dom.id === configId) {
+              if(options?.delete === true) {
+                newValue.component.dom = {}
+              } else {
+                newValue.component.dom = updateConfigCb(dom, dom)
+              }
+            } else if (parentId && parentId === dom.id) {
+              if(options?.delete === true) {
+                newValue.component.dom.children = dom.children.filter(childConfig => childConfig.id !== configId)
+              } else {
+                newValue.component.dom.children = dom.children.map(childConfig => {
+                  if(childConfig.id === configId) {
+                    return updateConfigCb(childConfig, dom)
+                  }
+                  return childConfig
+                })
+              }
+            }
+
+            return newValue
+          })
+        }
       },
       updateEndpoint: updatedEndpoint => {
         setValue(prevValue => ({
@@ -132,32 +182,49 @@ const ComponentProvider = ({children}) => {
   )
 }
 
+const BASE_FORM_ID = 'form'
+
 const UpdateDom = () => {
   const {updateDom, selectionIdentifier} = useContext(ComponentContext)
+  const {create} = useLocalStorage('db')
 
   const add = (type) => {
     updateDom(prevDom => {
       if(type === 'save') {
         return {
           ...prevDom,
+          id: `${BASE_FORM_ID}.0`,
           node: {
             form: {
               
             }
+          },
+          props: {
+
           }
         }
       }
 
       if(['input', 'button'].includes(type)) {
+        const id = `${type}.${(prevDom.chilren || []).length + 1}-${BASE_FORM_ID}.0`
         return {
           ...prevDom,
           children: (prevDom.children || []).concat({
-            id: `${type}.${(prevDom.chilren || []).length + 1}`,
+            id,
             node: {
               [type]: {
 
-              }
+              },
             },
+                      props: {
+                        onChange: e => {
+                          updateDom(id, config => {
+                            config.props.value = e.target.value
+                            return config
+                          })
+                        }
+
+              },
             children: type === 'button' ? 'submit' : undefined
           })
         }
@@ -165,15 +232,13 @@ const UpdateDom = () => {
     })
   }
 
-  const button = 'cursor-pointer px-4 py-2 border-2 border-dotted rounded-l'
-
   const getOptions = (identifier) => {
     switch(true) {
       case identifier?.startsWith('form'): {
         return (
           <>
-            <button className={`${button} border-blue-500`} onClick={() => add('input')}>input</button>
-            <button className={`${button} border-red-500`} onClick={() => add('button')}>button</button>
+            <button className={`${classNames.button.base} border-blue-500`} onClick={() => add('input')}>input</button>
+            <button className={`${classNames.button.base} border-red-500`} onClick={() => add('button')}>button</button>
           </>
         )
       }
@@ -181,6 +246,49 @@ const UpdateDom = () => {
       case identifier?.startsWith('input'): {
         return (
           <>
+            <label htmlFor="placeholder">placeholder</label>
+            <input type="text" name='placeholder' onChange={e => {
+              updateDom(
+                identifier,
+                config => {
+                  config.props.placeholder = e.target.value
+                  return config
+                }
+              )
+            }}/>
+          </>
+        )
+      }
+
+          case identifier?.startsWith('button'): {
+        return (
+          <>
+            <label htmlFor="button-text">Button Text</label>
+            <input type="text" name='button-text' defaultValue={'submit'} onChange={e => {
+              updateDom(identifier, config => {
+                config.children = e.target.value
+                return config
+              })
+            }}/>
+
+            <label htmlFor="action">action</label>
+            <select name='action' onChange={e => {
+              updateDom(identifier, (config, domConfig) => {
+                config.props.onClick = e => {
+                  e.preventDefault()
+
+                  // extract to helper function
+                  const text = domConfig.children.find(({id}) => 'input.0-form.0').props.value
+                  create({
+                    text
+                  })
+                }
+                return config
+              })
+            }}>
+              <option value=''>select action</option>
+              <option value="create">create entry</option>
+            </select>
           </>
         )
       }
@@ -188,8 +296,8 @@ const UpdateDom = () => {
       default: {
         return (
           <>
-            <button className={`${button} border-blue-500`} onClick={() => add('save')}>save data</button>
-            <button className={`${button} border-green-500`} onClick={() => add('retreive')}>retreive data</button>
+            <button className={`${classNames.button.base} border-blue-500`} onClick={() => add('save')}>save data</button>
+            <button className={`${classNames.button.base} border-green-500`} onClick={() => add('retreive')}>retreive data</button>
           </>
         )
       }
@@ -203,9 +311,7 @@ const UpdateDom = () => {
   )
 }
 
-const hoverBorder = '!border-2 !border-purple-300'
-
-const ElementSelector = () => {
+const ElementsList = () => {
   const {dom, updateDom, setSelectionIdentifier, selectionIdentifier} = useContext(ComponentContext)
 
   const getSelector = (config) => {
@@ -213,57 +319,27 @@ const ElementSelector = () => {
     return (
       <Fragment key={config.id}>
         <span 
-          className={`cursor-pointer grid grid-flow-col items-center hover:bg-purple-200 ${selectionIdentifier === config.id ? 'bg-purple-400' : ''}`} 
+          className={`cursor-pointer grid grid-flow-col items-center ${classNames.selection.hover} ${selectionIdentifier === config.id ? classNames.selection.selected : ''}`} 
           onClick={() => setSelectionIdentifier(config.id)}
           onMouseEnter={() => {
-            updateDom(prevDom => {
-              const newDom = {...prevDom}
-
-              if(config.id.startsWith('form')) {
-                newDom.props = {
-                  ...newDom.props,
-                  className: `${newDom?.props?.className || ''} ${hoverBorder}`
-                }
-              } else if(Array.isArray(newDom.children)) {
-                newDom.children = newDom.children.map(childConfig => {
-                  if(childConfig.id === config.id) return {
-                    ...childConfig,
-                    props: {
-                      ...childConfig.props,
-                      className: `${childConfig?.props?.className || ''} ${hoverBorder}`
-                    }
-                  }
-
-                  return childConfig
-                })
-              }
-
-              return newDom
+            updateDom(config.id, conf => {
+              conf.props.className = `${conf.props.className || ''} ${classNames.selection.border}`
+              return config
             })
           }}
           onMouseLeave={() => {
-            updateDom(prevDom => {
-              const newDom = {...prevDom}
-
-              if(config.id.startsWith('form')) {
-                newDom.props.className = newDom.props.className.replace(hoverBorder, '')
-              } if(Array.isArray(newDom.children)) {
-                newDom.children = newDom.children.map(childConfig => {
-                  if(childConfig.id === config.id) return {
-                    ...childConfig,
-                    props: {
-                      className: childConfig.props.className.replace(hoverBorder, '')
-                    }
-                  }
-                  return childConfig
-                })
-              }
-              return newDom
+            updateDom(config.id, conf => {
+              conf.props.className = conf.props.className.replace(classNames.selection.border, '')
+              return conf
             })
           }}
         >
           <span className={`inline-block w-10 h-2 ${classNames?.[baseElement]?.border}`}></span>
           <p className="">{baseElement}</p>
+          <span onClick={(e) => {
+            e.stopPropagation()
+            updateDom(config.id, null, {delete: true})
+          }} >d</span>
         </span>
         {Array.isArray(config.children) ? config.children.map(childConfig => getSelector(childConfig)) : undefined}
       </Fragment>
@@ -280,7 +356,7 @@ const ElementSelector = () => {
 const Dom = () => {
   const {dom, selectionIdentifier} = useContext(ComponentContext)
 
-  if(!dom) return null
+  if(!dom.id) return null
 
   const createNode = (domConfig) => {
     const newConfig = {...domConfig}
@@ -289,27 +365,27 @@ const Dom = () => {
       ...newConfig.props,
       key: newConfig.id
     }
-    if(newConfig.id.startsWith('form')) {
+    if(newConfig?.id?.startsWith('form')) {
       newConfig.node = Form
     }
     
-    if(newConfig.id.startsWith('input')) {
+    if(newConfig?.id?.startsWith('input')) {
       newConfig.node = Input
     }
 
-    if(newConfig.id.startsWith('button')) {
+    if(newConfig?.id?.startsWith('button')) {
       newConfig.node = Button
     }
 
     // find alternate solution to override classname other than !important
-    if(newConfig.id === selectionIdentifier) {
+    if(newConfig?.id === selectionIdentifier) {
       newConfig.props = {
         ...newConfig.props,
-        className: `border-2 !border-purple-400 ${newConfig.props?.className || ''}`
+        className: `${newConfig.props?.className || ''} ${classNames.selection.border}`
       }
     }
 
-    if(newConfig.children) {
+    if(newConfig?.children) {
       if(Array.isArray(newConfig.children)) {
         newConfig.children = newConfig.children.map(childConfig => {
           return createNode(childConfig)
@@ -327,7 +403,7 @@ const Dom = () => {
           createNode(dom)
         }
       </div>
-      <ElementSelector/>
+      <ElementsList/>
     </div>
   )
 }
@@ -344,7 +420,7 @@ export default () => {
       // debug ERR_INCOMPLETE_CHUNKED_ENCODING error
       setTimeout(() => {
         window.location.reload()
-      }, 300)
+      }, 500)
     }
   }, [])
 
