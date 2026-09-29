@@ -1,7 +1,9 @@
-import { useState } from "react"
-
 export default (key) => {
     if(!key) throw new Error('argument "key" is required')
+
+    const get = (idx) => {
+        return getAll()[idx]
+    }
 
     const getAll = () => {
         const collection = localStorage.getItem(key)
@@ -27,6 +29,7 @@ export default (key) => {
     }
 
     return {
+        get,
         getAll,
         create,
         update,
