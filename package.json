@@ -8,13 +8,17 @@
     },
     "dependencies": {
         "express": "^5.2.1",
-        "pg": "^8.23.0",
         "react": "^19.2.8",
         "react-dom": "^19.2.8"
     },
     "devDependencies": {
+        "@eslint-react/eslint-plugin": "^5.23.3",
+        "@eslint/js": "^10.0.1",
+        "@stylistic/eslint-plugin": "^5.10.0",
         "@tailwindcss/cli": "^4.3.3",
         "esbuild": "^0.28.2",
+        "eslint": "^10.11.0",
+        "globals": "^17.13.0",
         "tailwindcss": "^4.3.3"
     }
 }

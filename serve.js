@@ -6,10 +6,17 @@ import esbuild from 'esbuild'
 import { exec } from 'node:child_process'
 
 import { 
+    API_BUILDER_DIR,
     BUILD_DIR, BUILD_PAGE_FILE, CSS_FILE, IS_DEVELOPMENT_ENVIRONMENT, LOADING_FILE, PAGE_FILE, SOURCE_DIR 
 } from './constants.js'
 
 export const serveBuildDir = async () => {
+    // in production
+    // lint before build
+    exec(`npx eslint ${SOURCE_DIR}/${API_BUILDER_DIR}`, (_, stdout) => {
+        process.stdin.write(stdout)
+    })
+
     const files = await readdir(SOURCE_DIR, {recursive: true})
     const entryPoints = files.filter(name => name.includes(PAGE_FILE))
         .map(path => `${SOURCE_DIR}/${path}`)

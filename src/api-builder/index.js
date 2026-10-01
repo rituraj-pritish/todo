@@ -2,6 +2,8 @@ import fs from 'node:fs/promises'
 import express from 'express'
 
 import { API_BUILDER_DIR, BUILD_DIR, BUILD_LOADING_FILE, HTML_PATH } from '../../constants.js'
+import { renderToString } from 'react-dom/server'
+import { createElement } from 'react'
 
 const router = express.Router()
 
@@ -14,12 +16,7 @@ router.use('/', async (req, res, next) => {
     // todo
     // prepare html file while building
 
-    let html
-    try {
-      html = await fs.readFile(HTML_PATH, 'utf-8')
-    } catch (error) {
-      throw error
-    }
+    let html = await fs.readFile(HTML_PATH, 'utf-8')
 
     let Loading
     try {
@@ -42,12 +39,12 @@ router.use('/', async (req, res, next) => {
         .replace("--HREF--", cssFilePath)
     } catch (error) {
       html = html
-      .replace(/<link[^>]*>[\s\S]*?/gi, '') 
+        .replace(/<link[^>]*>[\s\S]*?/gi, '') 
     }
 
     const jsFilePath = `${BUILD_DIR}/${API_BUILDER_DIR}/index.js`
     html = html
-        .replace("<script>\"--SCRIPT--\"</script>", `<script type="module" src="${jsFilePath}"></script>`)
+      .replace("<script>\"--SCRIPT--\"</script>", `<script type="module" src="${jsFilePath}"></script>`)
     
     res.send(html)
   }

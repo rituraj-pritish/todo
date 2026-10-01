@@ -5,7 +5,7 @@ const rootEl = document.getElementById('root')
 const root = createRoot(rootEl)
 rootEl.classList.add('rendered')
 root.render(
-    <>
-        <App/>
-    </>
+  <>
+    <App/>
+  </>
 )
