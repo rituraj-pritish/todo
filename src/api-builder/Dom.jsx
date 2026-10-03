@@ -51,7 +51,7 @@ export default () => {
     <div className="grid grid-flow-col grid" style={{ height: '50vh' }}>
       <div className={`p-2 border-r ${colors.theme.border}`}>
         <List type={ELEMENT_TYPES.COMPONENT} onSelect={(comp) => {
-            updateDom(() => comp)
+          updateDom(() => comp)
         }
         }
         />
@@ -63,7 +63,7 @@ export default () => {
         dom={dom}
         selectionIdentifier={selectionIdentifier} 
         onClick={id => {
-            setSelectionIdentifier(id)
+          setSelectionIdentifier(id)
         }}/>
     </div>
   )

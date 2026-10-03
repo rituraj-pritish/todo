@@ -5,7 +5,7 @@ import useGlobalContext from "./useGlobalContext"
 import { isChild } from "./utils"
 
 export const Container = props => {
-  const {get, set} = useLocalStorage('db')
+  const { get, set } = useLocalStorage('db')
 
   const [state, setState] = useState({})
 
@@ -16,11 +16,11 @@ export const Container = props => {
         props: {
           ...child.props,
           onChange: e => {
-        setState(prevState => ({
-          ...prevState,
-          [child.key]: e.target.value
-        }))
-      }
+            setState(prevState => ({
+              ...prevState,
+              [child.key]: e.target.value
+            }))
+          }
         }
       }
     }
@@ -31,12 +31,12 @@ export const Container = props => {
         props: {
           ...child.props,
           onClick: e => {
-        e.preventDefault()
-        if(props.actions[child.key] === 'create') {
-          const entries = get(props.name) || []
-          set(props.name, [...entries, state])
-        }
-      }
+            e.preventDefault()
+            if(props.actions[child.key] === 'create') {
+              const entries = get(props.name) || []
+              set(props.name, [...entries, state])
+            }
+          }
         }
       }
     }
@@ -69,7 +69,7 @@ export const Button = props => {
 }
 
 export const Text = props => {
-  const {get} = useLocalStorage('db')
+  const { get } = useLocalStorage('db')
   const text = get(props.collectionKey)
   return (
     <p {...props} className={`${props.className} inline-block p-2 ${classNames.text.border}`}>
@@ -87,8 +87,8 @@ export const List = ({ type, onSelect }) => {
 
   return (
     <div>
-      {list.map((item, idx) => (
-        <div key={idx.toString()} className="hover:bg-purple-300" onClick={() => onSelect(item)}>
+      {list.map((item) => (
+        <div key={item.props.name} className="hover:bg-purple-300" onClick={() => onSelect(item)}>
           <p>
             {item.props.name || 'no-name'}
           </p>
@@ -108,7 +108,7 @@ export const ElementsList = ({
   filter = {
     type: ''
   },
-  onClick = (id) => {}
+  onClick 
 }) => {
   const { updateDom } = useGlobalContext()
 

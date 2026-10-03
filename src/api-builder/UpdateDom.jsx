@@ -82,7 +82,7 @@ export default () => {
       }
 
       case identifier?.startsWith('button'): {
-        const {children} = getConfig(identifier)
+        const { children } = getConfig(identifier)
         return (
           <>
             <label htmlFor="button-text">Button Text</label>
@@ -94,8 +94,8 @@ export default () => {
             }}/>
 
             <label htmlFor="action">action</label>
-            <select name='action' value={getConfig(getRootId({id: identifier}))?.props?.actions?.[identifier]} onChange={e => {
-              updateDom(getRootId({id: identifier}), (config) => {
+            <select name='action' value={getConfig(getRootId({ id: identifier }))?.props?.actions?.[identifier]} onChange={e => {
+              updateDom(getRootId({ id: identifier }), (config) => {
                 config.props.actions[identifier] = e.target.value
                 return config
               })

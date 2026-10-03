@@ -26,7 +26,7 @@ router.use('/', async (req, res, next) => {
       const loadingHTML = renderToString(createElement(Loading.default))
       html = html.toString()
         .replace("--ROOT--", loadingHTML)
-    } catch (error) {
+    } catch {
       html = html.toString()
         .replace("--ROOT--", '')
     }
@@ -37,7 +37,7 @@ router.use('/', async (req, res, next) => {
       
       html = html
         .replace("--HREF--", cssFilePath)
-    } catch (error) {
+    } catch {
       html = html
         .replace(/<link[^>]*>[\s\S]*?/gi, '') 
     }

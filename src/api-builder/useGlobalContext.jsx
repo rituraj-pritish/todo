@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, use, useState } from 'react'
 
 import { GLOBAL_CONTEXT_INITIAL_VALUE } from './constants.js'
 import useLocalStorage from './useLocalStorage.js'
@@ -31,49 +31,49 @@ export const GlobalContextProvider = ({ children }) => {
   }
 
   const updateDom = (...args) => {
-        // update base node
-        if(args.length === 1) {
-          const [updatedDomCb] = args
+    // update base node
+    if(args.length === 1) {
+      const [updatedDomCb] = args
 
-          setValue(prevValue => ({
-            ...prevValue,
-            dom: updatedDomCb(prevValue.dom)
-          }))
+      setValue(prevValue => ({
+        ...prevValue,
+        dom: updatedDomCb(prevValue.dom)
+      }))
+    }
+
+    // update nested node
+    if(args.length >= 2) {
+      const [configId, updateConfigCb, options] = args
+
+      setValue(prevValue => {
+        const newValue = { ...prevValue }
+
+        const dom = newValue.dom
+        const [_, parentId] = configId.split('-')
+
+        if(dom.id === configId) {
+          if(options?.delete === true) {
+            newValue.dom = {}
+          } else {
+            newValue.dom = updateConfigCb(dom, dom)
+          }
+        } else if (parentId && parentId === dom.id) {
+          if(options?.delete === true) {
+            newValue.dom.children = dom.children.filter(childConfig => childConfig.id !== configId)
+          } else {
+            newValue.dom.children = dom.children.map(childConfig => {
+              if(childConfig.id === configId) {
+                return updateConfigCb(childConfig, dom)
+              }
+              return childConfig
+            })
+          }
         }
 
-        // update nested node
-        if(args.length >= 2) {
-          const [configId, updateConfigCb, options] = args
-
-          setValue(prevValue => {
-            const newValue = { ...prevValue }
-
-            const dom = newValue.dom
-            const [_, parentId] = configId.split('-')
-
-            if(dom.id === configId) {
-              if(options?.delete === true) {
-                newValue.dom = {}
-              } else {
-                newValue.dom = updateConfigCb(dom, dom)
-              }
-            } else if (parentId && parentId === dom.id) {
-              if(options?.delete === true) {
-                newValue.dom.children = dom.children.filter(childConfig => childConfig.id !== configId)
-              } else {
-                newValue.dom.children = dom.children.map(childConfig => {
-                  if(childConfig.id === configId) {
-                    return updateConfigCb(childConfig, dom)
-                  }
-                  return childConfig
-                })
-              }
-            }
-
-            return newValue
-          })
-        }
-      }
+        return newValue
+      })
+    }
+  }
 
   const addItem = (item, type) => {
     setValue(prevValue => {
@@ -177,7 +177,7 @@ export const GlobalContextProvider = ({ children }) => {
 }
 
 export default () => {
-  const context = useContext(GlobalContext)
+  const context = use(GlobalContext)
   if(!context) throw new Error('this hook can only used inside of corresponding provider component')
   return context
 }
