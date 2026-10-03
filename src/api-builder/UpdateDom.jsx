@@ -1,6 +1,6 @@
 import useGlobalContext from './useGlobalContext'
 import { CHILD_SEPARATOR, classNames, ELEMENT_TYPES } from './constants'
-import { getRootId } from './utils'
+import { getElementId, getRootId } from './utils'
 
 export default () => {
   const { dom, getConfig, addComponent, updateDom, selectionIdentifier, setSelectionIdentifier } = useGlobalContext()
@@ -11,6 +11,7 @@ export default () => {
         return {
           id: type,
           props: {
+            state: {},
             actions: {}
           }
         }
@@ -28,37 +29,31 @@ export default () => {
     }
   }
 
-  const dataOptions = (
-    <>
-      <button className={`border-gray-500`} onClick={() => add('text')}>text</button>
-    </>
-  )
-
   const getOptions = (identifier) => {
     switch(true) { 
-      case identifier?.startsWith('form'): {
-        return (
-          <>
-            <button className={`border-blue-500`} onClick={() => add('input')}>input</button>
-            <button className={`border-red-500`} onClick={() => add('button')}>button</button>
-          </>
-        )
-      }
-
-      case identifier?.startsWith('data'): {
-        return (
-          <>
-            {dataOptions}
-          </>
-        )
-      }
-
       case identifier?.startsWith('text'): {
         const config = getConfig(identifier)
         if(!config) return null
+        const selectedInput = getConfig(getRootId({ id: identifier })).props.state[identifier]
         return (
           <>
-            {config.endpoint?.fields ? <p>select element from list</p> : <p>select component to list text fields</p>}
+            <button className='border' onClick={() => {
+              setSelectionIdentifier(identifier + '|input')
+            }}>
+              select 
+            </button>
+            { selectedInput
+              ? selectedInput
+              : <p>component to list input fields</p>
+            }
+            
+            <label htmlFor='text'>add custom</label>
+            <input name='text' onChange={e => {
+              updateDom(identifier, config => {
+                config.children = e.target.value
+                return config
+              })
+            }} />
           </>
         )
       }
@@ -110,6 +105,17 @@ export default () => {
       case identifier?.endsWith(ELEMENT_TYPES.COMPONENT): {
         return (
           <>
+            <label htmlFor='type'>type</label>
+            <select name='type' defaultValue='single' onChange={e => {
+              updateDom(identifier, config => {
+                config.props.type = e.target.value
+                return config
+              })
+            }}>
+              <option value='single'>single</option>
+              <option value='list'>list</option>
+            </select>
+
             <button className={classNames.input.border} onClick={() => add(ELEMENT_TYPES.INPUT)}>input</button>
             <button className={classNames.button.border} onClick={() => add(ELEMENT_TYPES.BUTTON)}>button</button>
             <button className={classNames.text.border} onClick={() => add(ELEMENT_TYPES.TEXT)}>text</button>
@@ -132,7 +138,7 @@ export default () => {
     <div className="h-full w-full flex">
       <div className="grow flex flex-col">
         <div className="grow grid grid-flow-col items-start gap-4">
-          {getOptions(selectionIdentifier)}
+          {getOptions(getElementId(selectionIdentifier))}
         </div>
 
         {dom?.id && <>

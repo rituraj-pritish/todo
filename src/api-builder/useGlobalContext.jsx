@@ -51,13 +51,13 @@ export const GlobalContextProvider = ({ children }) => {
         const dom = newValue.dom
         const [_, parentId] = configId.split('-')
 
-        if(dom.id === configId) {
+        if(dom?.id === configId) {
           if(options?.delete === true) {
             newValue.dom = {}
           } else {
             newValue.dom = updateConfigCb(dom, dom)
           }
-        } else if (parentId && parentId === dom.id) {
+        } else if (parentId && parentId === dom?.id) {
           if(options?.delete === true) {
             newValue.dom.children = dom.children.filter(childConfig => childConfig.id !== configId)
           } else {
@@ -110,7 +110,7 @@ export const GlobalContextProvider = ({ children }) => {
     setValue(prevValue => {
       const prevItems = get(type)
       const newItems = prevItems.filter(i => {
-        return i.name !== item.name
+        return i.props.name !== item.props.name
       })
       
       set(type, newItems)

@@ -1,9 +1,9 @@
 import { createElement } from "react"
 
 import { Button, List, ElementsList, Input, Text, Container } from "./components"
-import { classNames, colors, ELEMENT_TYPES } from "./constants"
+import { classNames, colors, ELEMENT_TYPES, SELECTION_SEPARATOR } from "./constants"
 import useGlobalContext from "./useGlobalContext"
-import { isChild } from "./utils"
+import { getElementId, getRootId, getSelectorComponent, getSelectorType, isChild } from "./utils"
 
 const elementComponents = {
   'input': Input,
@@ -12,7 +12,7 @@ const elementComponents = {
 }
 
 export default () => {
-  const { dom, setSelectionIdentifier, selectionIdentifier, updateDom } = useGlobalContext()
+  const { dom: mainDom, components, setSelectionIdentifier, selectionIdentifier, updateDom } = useGlobalContext()
 
   const createNode = (domConfig) => {
     const newConfig = { ...domConfig }
@@ -47,11 +47,20 @@ export default () => {
     return createElement(newConfig.node, newConfig.props, newConfig.children)
   }
 
+  const displayTemporaryDom = selectionIdentifier?.includes(SELECTION_SEPARATOR)
+  const dom = displayTemporaryDom 
+    ? components.find(({ props }) => getSelectorComponent(selectionIdentifier) === props.name)
+    : mainDom
+
   return (
     <div className="grid grid-flow-col grid" style={{ height: '50vh' }}>
       <div className={`p-2 border-r ${colors.theme.border}`}>
-        <List type={ELEMENT_TYPES.COMPONENT} onSelect={(comp) => {
-          updateDom(() => comp)
+        <List type={ELEMENT_TYPES.COMPONENT} onSelect={(dom) => {
+          if(displayTemporaryDom) {
+            setSelectionIdentifier(selectionIdentifier + '-' + dom.props.name)
+          } else {
+            updateDom(() => dom)
+          }
         }
         }
         />
@@ -61,9 +70,21 @@ export default () => {
       </div>
       <ElementsList 
         dom={dom}
+        filter={{
+          type: getSelectorType(selectionIdentifier)
+        }}
         selectionIdentifier={selectionIdentifier} 
         onClick={id => {
-          setSelectionIdentifier(id)
+          if(displayTemporaryDom) {
+            updateDom(getRootId({ id: getElementId(selectionIdentifier) }), config => {
+              config.props.state[getElementId(selectionIdentifier)] = id + '-' + getSelectorComponent(selectionIdentifier)
+
+              setSelectionIdentifier(getElementId(selectionIdentifier))
+              return config
+            })
+          } else {
+            setSelectionIdentifier(id)
+          }
         }}/>
     </div>
   )

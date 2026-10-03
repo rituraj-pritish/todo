@@ -1,5 +1,5 @@
 import { Fragment, useState } from "react"
-import { classNames, colors, ELEMENT_TYPES } from "./constants"
+import { CHILD_SEPARATOR, classNames, colors, ELEMENT_TYPES } from "./constants"
 import useLocalStorage from "./useLocalStorage"
 import useGlobalContext from "./useGlobalContext"
 import { isChild } from "./utils"
@@ -8,7 +8,7 @@ export const Container = props => {
   const { get, set } = useLocalStorage('db')
 
   const [state, setState] = useState({})
-
+  
   const children = props.children?.map(child => {
     if(child.key.startsWith(ELEMENT_TYPES.INPUT)) {
       return {
@@ -41,12 +41,52 @@ export const Container = props => {
       }
     }
 
+    if(child.key.startsWith(ELEMENT_TYPES.TEXT) && props.state[child.key]) {
+      const identifierArray = props.state[child.key].split(CHILD_SEPARATOR)
+      const key = identifierArray.pop()
+      const identifier = identifierArray.join(CHILD_SEPARATOR)
+
+      return {
+        ...child,
+        props: {
+          ...child.props,
+          children: get(key)[0][identifier]
+        }
+      }
+    }
+
     return child
   })
 
+  const identifierArray = props.state ? Object.values(props.state)?.[0]?.split(CHILD_SEPARATOR) : []
+  const key = identifierArray?.pop()
+  const identifier = identifierArray?.join(CHILD_SEPARATOR)
+  const entries = get(key) || [{}]
+
   return (
     <div>
-      {children}
+      {
+        props.type === 'list'
+          ? entries?.map((entry) => {
+            return (
+              <div key={entry[identifier]}>
+                {children?.map(child => {
+                  if(child.key.startsWith(ELEMENT_TYPES.TEXT) && props.state[child.key]) {
+                    return {
+                      ...child,
+                      props: {
+                        ...child.props,
+                        children: entry[identifier]
+                      }
+                    }
+                  }
+                  return child
+                })}
+              </div>
+            )
+          })
+          : children
+      }
     </div>
   )
 }
@@ -69,12 +109,9 @@ export const Button = props => {
 }
 
 export const Text = props => {
-  const { get } = useLocalStorage('db')
-  const text = get(props.collectionKey)
   return (
     <p {...props} className={`${props.className} inline-block p-2 ${classNames.text.border}`}>
-      {/* <p>{props.children}</p> */}
-      {text}
+      {props.children}
     </p>
   )
 }

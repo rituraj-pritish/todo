@@ -61,3 +61,4 @@ export const ELEMENT_TYPES = {
 }
 
 export const CHILD_SEPARATOR = '-'
+export const SELECTION_SEPARATOR = '|'
