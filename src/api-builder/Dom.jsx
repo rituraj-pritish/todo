@@ -1,13 +1,18 @@
-import { createElement, useContext } from "react"
+import { createElement } from "react"
 
-import { Button, Data, ElementsList, Form, Input, Text } from "./components"
-import { ComponentContext } from "./App"
-import { classNames } from "./constants"
+import { Button, List, ElementsList, Input, Text, Container } from "./components"
+import { classNames, colors, ELEMENT_TYPES } from "./constants"
+import useGlobalContext from "./useGlobalContext"
+import { isChild } from "./utils"
+
+const elementComponents = {
+  'input': Input,
+  'button': Button,
+  'text': Text
+}
 
 export default () => {
-  const { dom, setSelectionIdentifier, selectionIdentifier } = useContext(ComponentContext)
-
-  if(!dom.id) return null
+  const { dom, setSelectionIdentifier, selectionIdentifier, updateDom } = useGlobalContext()
 
   const createNode = (domConfig) => {
     const newConfig = { ...domConfig }
@@ -16,31 +21,16 @@ export default () => {
       ...newConfig.props,
       key: newConfig.id
     }
-    if(newConfig?.id?.startsWith('form')) {
-      newConfig.node = Form
-    }
-    
-    if(newConfig?.id?.startsWith('input')) {
-      newConfig.node = Input
-    }
 
-    if(newConfig?.id?.startsWith('button')) {
-      newConfig.node = Button
-    }
-
-    if(newConfig?.id?.startsWith('data')) {
-      newConfig.node = Data
-    }
-
-    if(newConfig?.id?.startsWith('text')) {
-      newConfig.node = Text
-    }
+    const child = isChild(newConfig)
+    const elementType = newConfig?.id?.split('.')[0]
+    newConfig.node = elementComponents[elementType] || Container
 
     // find alternate solution to override classname other than !important
-    if(newConfig?.id === selectionIdentifier) {
+    if(newConfig?.id === selectionIdentifier && child) {
       newConfig.props = {
         ...newConfig.props,
-        className: `${newConfig.props?.className || ''} ${classNames.selection.border}`
+        className: `${newConfig.props?.className} ${classNames.selection.border}`
       }
     }
 
@@ -52,15 +42,29 @@ export default () => {
       }
     }
 
+    if(!newConfig.node && !child) return null
+
     return createElement(newConfig.node, newConfig.props, newConfig.children)
   }
 
   return (
     <div className="grid grid-flow-col grid" style={{ height: '50vh' }}>
-      <div className="p-2 col-span-20">
-        {createNode(dom)}
+      <div className={`p-2 border-r ${colors.theme.border}`}>
+        <List type={ELEMENT_TYPES.COMPONENT} onSelect={(comp) => {
+            updateDom(() => comp)
+        }
+        }
+        />
       </div>
-      <ElementsList selectionIdentifier={selectionIdentifier} onClick={setSelectionIdentifier}/>
+      <div className="p-2 col-span-20">
+        {dom?.id && createNode(dom)}
+      </div>
+      <ElementsList 
+        dom={dom}
+        selectionIdentifier={selectionIdentifier} 
+        onClick={id => {
+            setSelectionIdentifier(id)
+        }}/>
     </div>
   )
 }

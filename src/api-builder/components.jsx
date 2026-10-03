@@ -1,20 +1,60 @@
-import { Fragment, useContext } from "react"
-import { ComponentContext } from "./App"
-import { classNames } from "./constants"
+import { Fragment, useState } from "react"
+import { classNames, colors, ELEMENT_TYPES } from "./constants"
+import useLocalStorage from "./useLocalStorage"
+import useGlobalContext from "./useGlobalContext"
+import { isChild } from "./utils"
+
+export const Container = props => {
+  const {get, set} = useLocalStorage('db')
+
+  const [state, setState] = useState({})
+
+  const children = props.children?.map(child => {
+    if(child.key.startsWith(ELEMENT_TYPES.INPUT)) {
+      return {
+        ...child,
+        props: {
+          ...child.props,
+          onChange: e => {
+        setState(prevState => ({
+          ...prevState,
+          [child.key]: e.target.value
+        }))
+      }
+        }
+      }
+    }
+
+    if(child.key.startsWith(ELEMENT_TYPES.BUTTON)) {
+      return {
+        ...child,
+        props: {
+          ...child.props,
+          onClick: e => {
+        e.preventDefault()
+        if(props.actions[child.key] === 'create') {
+          const entries = get(props.name) || []
+          set(props.name, [...entries, state])
+        }
+      }
+        }
+      }
+    }
+
+    return child
+  })
+
+  return (
+    <div>
+      {children}
+    </div>
+  )
+}
 
 export const Input = (props) => {
   return (
     <input {...props} 
       className={`${props.className} px-2 ${classNames.input.border}`}
-    />
-  )
-}
-
-export const Form = (props) => {
-  return (
-    <form 
-      {...props}
-      className={`p-2 ${classNames.form.border} ${props.className || ''}`}
     />
   )
 }
@@ -28,35 +68,33 @@ export const Button = props => {
   )
 }
 
-export const Data = props => {
-  return (
-    <div {...props} className={`${props.className || ''} p-2 ${classNames.data.border}`}>
-      {props.children}
-    </div>
-  )
-}
-
 export const Text = props => {
+  const {get} = useLocalStorage('db')
+  const text = get(props.collectionKey)
   return (
-    <div {...props} className={`${props.className || ''} p-2 ${classNames.text.border}`}>
-      <p>{props.children}</p>
-    </div>
+    <p {...props} className={`${props.className} inline-block p-2 ${classNames.text.border}`}>
+      {/* <p>{props.children}</p> */}
+      {text}
+    </p>
   )
 }
 
-export const ComponentList = ({ onSelect }) => {
-  const { published, deletePublished } = useContext(ComponentContext)
+export const List = ({ type, onSelect }) => {
+  const { components, pages, deleteComponent, deletePage } = useGlobalContext()
+
+  const list = type === ELEMENT_TYPES.PAGE ? pages : components
+  const deleteItem = type === ELEMENT_TYPES.PAGE ? deletePage : deleteComponent
 
   return (
-    <div className="hover:bg-purple-300">
-      {published.map((component, idx) => (
-        <div key={idx.toString()} onClick={() => onSelect(component)}>
+    <div>
+      {list.map((item, idx) => (
+        <div key={idx.toString()} className="hover:bg-purple-300" onClick={() => onSelect(item)}>
           <p>
-            {component.name || 'no-name'}
+            {item.props.name || 'no-name'}
           </p>
           <span onClick={(e) => {
             e.stopPropagation()
-            deletePublished(idx)}
+            deleteItem(item)}
           } >d</span>
         </div>
       ))}
@@ -65,25 +103,27 @@ export const ComponentList = ({ onSelect }) => {
 }
 
 export const ElementsList = ({
+  dom,
   selectionIdentifier,
   filter = {
     type: ''
   },
   onClick = (id) => {}
 }) => {
-  const { dom, updateDom } = useContext(ComponentContext)
+  const { updateDom } = useGlobalContext()
 
   const identifiers = selectionIdentifier && Array.isArray(selectionIdentifier)
     ? selectionIdentifier
     : [selectionIdentifier]
 
   const getSelector = (config) => {
-    const isChildElement = config.id.includes('-')
-    if(isChildElement && filter.type && !config.id.startsWith(filter.type)) {
+    const isChildElement = isChild(config)
+    if((isChildElement && filter.type && !config.id.startsWith(filter.type))) {
       return null
     }
 
     const baseElement = config.id.split('.')[0]
+
     return (
       <Fragment key={config.id}>
         <span 
@@ -115,8 +155,8 @@ export const ElementsList = ({
   }
 
   return (
-    <div className="h-full p-2 border-l">
-      {getSelector(dom)}
+    <div className={`h-full p-2 border-l ${colors.theme.border}`}>
+      {dom?.id && getSelector(dom)}
     </div>
   )
 }

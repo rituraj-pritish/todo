@@ -1,7 +1,4 @@
 export const colors = {
-  form: {
-    border: 'border-orange-300',
-  },
   input: {
     border: 'border-blue-300'
   },
@@ -13,24 +10,18 @@ export const colors = {
     border: 'border-purple-400',
     selected: 'bg-purple-500'
   },
-  data: {
-    border: 'border-green-300'
-  },
   list: {
     border: 'border-indigo-300'
   },
   text: {
     border: 'border-gray-300'
+  },
+  theme: {
+    border: 'border-purple-500'
   }
 }
 
 export const classNames = {
-  form: {
-    border: `border border-dashed ${colors.form.border}`
-  },
-  data: {
-    border: `border border-dashed ${colors.data.border}`
-  },
   input: {
     border: `border ${colors.input.border}`
   },
@@ -51,16 +42,22 @@ export const classNames = {
   }
 }
 
-export const COMPONENT_CONTEXT_VALUE = {
-  published: [],
-  component: {
-    name: '',
-    dom: {
-
-    },
-    endpoint: {
-
-    },
-  },
-  selectionIdentifier: null
+export const GLOBAL_CONTEXT_INITIAL_VALUE = {
+  pages: [],
+  components: [],
+  dom: undefined,
+  selectedId: undefined
 }
+
+export const ELEMENT_TYPES = {
+  PAGE: 'page',
+  COMPONENT: 'component',
+  CONTAINER: 'container',
+  
+  INPUT: 'input',
+  BUTTON: 'button',
+
+  TEXT: 'text'
+}
+
+export const CHILD_SEPARATOR = '-'

@@ -1,64 +1,31 @@
-import { Fragment, useContext, useEffect, useRef } from 'react'
-
-import useLocalStorage from './useLocalStorage'
-import { ComponentList, ElementsList } from './components'
-import { ComponentContext } from './App'
+import useGlobalContext from './useGlobalContext'
+import { CHILD_SEPARATOR, classNames, ELEMENT_TYPES } from './constants'
+import { getRootId } from './utils'
 
 export default () => {
-  const { getConfig, published, publishComponent, updateComponent, updateDom, selectionIdentifier, dom, name, fields, setComponent, setFields } = useContext(ComponentContext)
-
-  const nameRef = useRef()
-
-  useEffect(() => {
-    nameRef.current.value = name
-  }, [dom?.id])
-
-  const { create } = useLocalStorage('db')
+  const { dom, getConfig, addComponent, updateDom, selectionIdentifier, setSelectionIdentifier } = useGlobalContext()
 
   const add = (type) => {
-    updateDom(prevDom => {
-      if(['form', 'data'].includes(type)) {
+    if(!dom) {
+      updateDom(() => {
         return {
-          ...prevDom,
-          id: `${type}.0`,
-          node: {
-            [type]: {
-              
-            }
-          },
+          id: type,
           props: {
-
+            actions: {}
           }
         }
-      }
-
-      if(['input', 'button', 'text'].includes(type)) {
-        const id = `${type}.${(prevDom.children || []).length + 1}-${selectionIdentifier}`
-        return {
-          ...prevDom,
-          children: (prevDom.children || []).concat({
-            id,
-            node: {
-              [type]: {
-
-              },
-            },
-            props:  {
-              onChange:  e => {
-                if(['button'].includes(type)) return undefined
-
-                updateDom(id, config => {
-                  config.props.value = e.target.value
-                  return config
-                })
-              }
-
-            },
-            children: ['button'].includes(type) ? 'submit' : undefined
-          })
-        }
-      }
-    })
+      })
+      setSelectionIdentifier(type)
+    } else {
+      updateDom(selectionIdentifier, config => {
+        config.children = [...config.children || [], {
+          id: `${type}.${config.children ? config.children.length : 0}${CHILD_SEPARATOR}${selectionIdentifier}`,
+          props: {},
+          children: type === ELEMENT_TYPES.BUTTON ? 'submit' : undefined
+        }]
+        return config
+      })
+    }
   }
 
   const dataOptions = (
@@ -87,15 +54,11 @@ export default () => {
       }
 
       case identifier?.startsWith('text'): {
+        const config = getConfig(identifier)
+        if(!config) return null
         return (
           <>
-            {!fields && <p>select component to list text fields</p>}
-            {fields && fields.length === 0 && <p>component does not contain any fields</p>}
-            {fields?.map((field, idx) => (
-              <Fragment key={idx.toString()}>
-                {field?.props?.name || 'input'}
-              </Fragment>
-            ))}
+            {config.endpoint?.fields ? <p>select element from list</p> : <p>select component to list text fields</p>}
           </>
         )
       }
@@ -119,10 +82,7 @@ export default () => {
       }
 
       case identifier?.startsWith('button'): {
-        const config = getConfig(identifier)
-        console.log('con', config)
-        if(!config) return null
-        const { children, endpoint } = config
+        const {children} = getConfig(identifier)
         return (
           <>
             <label htmlFor="button-text">Button Text</label>
@@ -134,49 +94,25 @@ export default () => {
             }}/>
 
             <label htmlFor="action">action</label>
-            <select name='action' onChange={e => {
-              updateDom(identifier, (config) => {
-                if(e.target.value === 'create') {
-                  config.endpoint = {
-                    action: 'create',
-                  }
-
-                  return config
-                }
+            <select name='action' value={getConfig(getRootId({id: identifier}))?.props?.actions?.[identifier]} onChange={e => {
+              updateDom(getRootId({id: identifier}), (config) => {
+                config.props.actions[identifier] = e.target.value
+                return config
               })
             }}>
               <option value=''>select action</option>
               <option value="create">create entry</option>
             </select>
+          </>
+        )
+      }
 
-            {
-              endpoint?.action === 'create'
-                ? (
-                  <>  
-                    <p>select field from list</p>
-                    <ElementsList
-                      selectionIdentifier={Object.keys(getConfig(identifier).endpoint?.fields || {})}
-                      filter={{ type: 'input' }} 
-                      onClick={id => {
-                        updateDom(identifier, config => {
-                          config.endpoint.fields = {
-                            [id]: true
-                          }
-
-                          config.props.onClick = e => {
-                            e.preventDefault()
-
-                            const { props } = getConfig()
-                            create(props.value)
-                          }
-
-                          return config
-                        })
-                      }}
-                    />
-                  </>
-                ) : null
-            }
+      case identifier?.endsWith(ELEMENT_TYPES.COMPONENT): {
+        return (
+          <>
+            <button className={classNames.input.border} onClick={() => add(ELEMENT_TYPES.INPUT)}>input</button>
+            <button className={classNames.button.border} onClick={() => add(ELEMENT_TYPES.BUTTON)}>button</button>
+            <button className={classNames.text.border} onClick={() => add(ELEMENT_TYPES.TEXT)}>text</button>
           </>
         )
       }
@@ -184,41 +120,32 @@ export default () => {
       default: 
         return (
           <>
-            <button className={`border-blue-500`} onClick={() => add('form')}>save data</button>
-            <button className={`border-green-500`} onClick={() => add('data')}>retreive data</button>
+            <button className={`border`} onClick={() => add(ELEMENT_TYPES.COMPONENT)}>create component</button>
+            <button className={`border`} onClick={() => add('page')}>compose page</button>
           </>
         )
       
     }
   }
-  const isEditing = published.find(component => component.name === name)
 
   return (
     <div className="h-full w-full flex">
-      <div className="pr-2 border-r border-black-500">
-        <ComponentList onSelect={(comp) => {
-          if(selectionIdentifier?.startsWith('text')) {
-            setFields(comp.endpoint.fields)
-          } else {
-            setComponent(comp)}
-        }
-        }
-        />
-      </div>
-      <div className="pl-2 grow flex flex-col">
+      <div className="grow flex flex-col">
         <div className="grow grid grid-flow-col items-start gap-4">
           {getOptions(selectionIdentifier)}
         </div>
-        <input ref={nameRef} type="text" placeholder="component name"
-        />
-        <button onClick={() => {
-          if(isEditing) {
-            updateComponent(nameRef.current.value)
-          } else {
-            publishComponent(nameRef.current.value)
-            nameRef.current.value = ''
-          }
-        }}>{isEditing ? 'update' : 'publish'}</button>
+
+        {dom?.id && <>
+          <input value={dom.props.name} type="text" placeholder="name" onChange={e => {
+            updateDom(dom.id, config => {
+              config.props.name = e.target.value
+              return config
+            })
+          }}/>
+          <button className='border' onClick={() => {
+            addComponent(dom)
+          }}>save</button>
+        </>}
       </div>
     </div>
   )

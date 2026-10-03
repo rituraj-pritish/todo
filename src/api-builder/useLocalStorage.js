@@ -1,38 +1,30 @@
-export default (key) => {
-  if(!key) throw new Error('argument "key" is required')
+export default (dbKey) => {
+  if(!dbKey) throw new Error('argument "db key" is required')
 
-  const get = (idx) => {
-    return getAll()[idx]
+  const getDb = () => {
+    return JSON.parse(localStorage.getItem(dbKey)) || {}
   }
 
-  const getAll = () => {
-    const collection = localStorage.getItem(key)
-    return collection ? JSON.parse(collection): []
+  const get = (key) => {
+    const db = getDb()
+    return db[key]
   }
 
-  const create = data => {
-    localStorage.setItem(key, JSON.stringify([...getAll(), data]))
+  const set = (key, data) => {
+    const db = getDb()
+    db[key] = data
+    localStorage.setItem(dbKey, JSON.stringify(db))
   }
 
-  const update = (idx, data) => {
-    const newValue = getAll()
-    const record = newValue[idx]
-    newValue[idx] = {
-      ...record,
-      ...data
-    }
-    localStorage.setItem(key, JSON.stringify(newValue))
-  }
-
-  const del = (idx) => {
-    localStorage.setItem(key, JSON.stringify(getAll().filter((_, index) => index !== idx)))
+  const del = (key) => {
+    const db = JSON.parse(localStorage.getItem(dbKey))
+    delete db[key] 
+    localStorage.setItem(dbKey, JSON.stringify(db))
   }
 
   return {
     get,
-    getAll,
-    create,
-    update,
+    set,
     del
   }
 }
