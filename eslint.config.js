@@ -1,7 +1,6 @@
 import { defineConfig } from "eslint/config";
 import globals from 'globals'
 import js from "@eslint/js";
-import react from '@eslint-react/eslint-plugin'
 import stylistic from '@stylistic/eslint-plugin'
 
 export default defineConfig([
@@ -11,15 +10,10 @@ export default defineConfig([
       js,
       '@stylistic': stylistic
     },
-    extends: [js.configs.recommended, react.configs.recommended],
+    extends: [js.configs.recommended],
     languageOptions: {
       globals: {
         ...globals.browser
-      },
-      parserOptions: {
-        ecmaFeatures: {
-          jsx: true
-        }
       }
     },
     rules: {
@@ -29,7 +23,6 @@ export default defineConfig([
       "no-undef": "error",
 
       '@stylistic/indent': ['warn', 2],
-      '@stylistic/jsx-curly-spacing': ["warn", { "when": "never" }],
       '@stylistic/object-curly-spacing': ["warn", "always"]
     },
   },
